@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Guruhdan chiqarish | Edu Tizim{% endblock %}
+{% block page_title %}Guruhdan chiqarish{% endblock %}
+{% block content %}
+<div class="card form-card" style="max-width: 500px; margin: 0 auto;">
+    <div class="card-header">
+        <h3><i class="fas fa-user-minus"></i> O'quvchini guruhdan chiqarish</h3>
+    </div>
+    <div class="card-body">
+        <div style="background: #fef2f2; border-radius: 10px; padding: 16px; margin-bottom: 24px; text-align: center; border: 1px solid #fecaca;">
+            <p style="font-size: 1.1rem; font-weight: 700; color: #1e293b;">{{ student.first_name }} {{ student.last_name }}</p>
+            <p style="color: #64748b; font-size: 0.9rem;">
+                {% if student.group %}
+                <span style="color: #2563eb;">{{ student.group.name }}</span> guruhidan chiqariladi
+                {% else %}
+                O'quvchi guruhga biriktirilmagan
+                {% endif %}
+            </p>
+        </div>
+        <div class="alert alert-info" style="margin-bottom: 20px;">
+            <i class="fas fa-info-circle"></i>
+            O'quvchi ma'lumotlari saqlanadi va "Kutilyotganlar" ro'yxatiga o'tadi. Keyinchalik istalgan guruhga qo'shishingiz mumkin.
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>{{ form.reason.label }} <span style="color: #dc2626;">*</span></label>
+                {{ form.reason }}
+                {% if form.reason.errors %}<div class="field-error">{{ form.reason.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="form-actions" style="justify-content: center; border: none; margin-top: 20px;">
+                <a href="{% if student.group %}{% url 'group_detail' student.group.pk %}{% else %}{% url 'student_profile' student.pk %}{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Bekor qilish</a>
+                <button type="submit" class="btn btn-danger"><i class="fas fa-user-minus"></i> Chiqarish</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

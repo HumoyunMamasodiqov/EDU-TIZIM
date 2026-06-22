@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} sozlamalari | Edu Tizim{% endblock %}
+{% block page_title %}{{ group.name }} - Sozlamalar{% endblock %}
+{% block content %}
+<div class="row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div>
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3><i class="fas fa-cog"></i> Guruh sozlamalari</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="update_group" value="1">
+                    {% for field in group_form %}
+                    <div class="form-group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary" style="margin-top: 12px;"><i class="fas fa-save"></i> Saqlash</button>
+                    <a href="{% url 'group_detail' group.pk %}" class="btn btn-secondary" style="margin-top: 12px;"><i class="fas fa-arrow-left"></i> Orqaga</a>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-trash"></i> Xavfli amallar</h3>
+            </div>
+            <div class="card-body">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="{% url 'group_delete' group.pk %}" class="btn btn-danger"><i class="fas fa-trash"></i> Guruhni o'chirish</a>
+                    {% if group.status != 'yopilgan' %}
+                    <a href="{% url 'group_close' group.pk %}" class="btn btn-danger"><i class="fas fa-folder-closed"></i> Guruhni yopish</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header between">
+                <h3><i class="fas fa-clock"></i> Dars vaqtlari</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="table min">
+                    <thead>
+                        <tr>
+                            <th>Hafta kuni</th>
+                            <th>Boshlanish</th>
+                            <th>Tugash</th>
+                            <th>Amal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lt in lesson_times %}
+                        <tr>
+                            <td>{{ lt.get_days_display }}</td>
+                            <td>{{ lt.start_time|time:"H:i" }}</td>
+                            <td>{{ lt.end_time|time:"H:i" }}</td>
+                            <td>
+                                <form method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="delete_lesson" value="1">
+                                    <input type="hidden" name="lesson_id" value="{{ lt.pk }}">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="O'chirish"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="empty">Hali dars vaqtlari belgilanmagan</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-body">
+                <h4 style="margin-bottom: 12px;"><i class="fas fa-plus"></i> Yangi dars vaqti qo'shish</h4>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="add_lesson" value="1">
+                    {% for field in lesson_form %}
+                    <div class="form-group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary" style="margin-top: 8px;"><i class="fas fa-plus"></i> Qo'shish</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 4px; }
+.checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.checkbox-group label { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 14px; cursor: pointer; padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.15s; }
+.checkbox-group label:hover { border-color: #2563eb; background: #eff6ff; }
+.checkbox-group input:checked + label { border-color: #2563eb; background: #dbeafe; color: #1d4ed8; font-weight: 600; }
+.checkbox-group input[type="checkbox"] { display: none; }
+</style>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} | Edu Tizim{% endblock %}
+{% block page_title %}{{ group.name }}{% endblock %}
+{% block content %}
+<div class="row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div>
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3><i class="fas fa-info-circle"></i> Guruh ma'lumotlari</h3>
+            </div>
+            <div class="card-body">
+                {% if group.is_ending_soon %}
+                <div class="alert" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Diqqat!</strong> Guruh tugashiga {{ group.remaining_days }} kun qoldi
+                </div>
+                {% elif group.remaining_days < 0 %}
+                <div class="alert" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-times-circle"></i>
+                    <strong>Guruh tugagan!</strong>
+                </div>
+                {% endif %}
+                {% if group.frozen_students_count > 0 %}
+                <div class="alert" style="background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-snowflake"></i>
+                    <strong>{{ group.frozen_students_count }} ta</strong> o'quvchi muzlatilgan
+                </div>
+                {% endif %}
+                <table class="table min">
+                    <tbody>
+                        <tr><td><strong>Kurs:</strong></td><td>{{ group.course.name }}</td></tr>
+                        <tr><td><strong>Holati:</strong></td><td><span class="badge {% if group.status == 'aktiv' %}badge-green{% elif group.status == 'yopilgan' or group.status == 'arxivlangan' %}badge-red{% else %}badge-yellow{% endif %}">{{ group.get_status_display }}</span></td></tr>
+                        <tr><td><strong>Ta'lim turi:</strong></td><td><span class="badge {% if group.education_type == 'onlayn' %}badge-blue{% else %}badge-purple{% endif %}">{{ group.get_education_type_display }}</span></td></tr>
+                        <tr><td><strong>Dars kunlari turi:</strong></td><td><span class="badge {% if group.day_type == 'toq' %}badge-blue{% elif group.day_type == 'juft' %}badge-orange{% else %}badge-green{% endif %}">{{ group.get_day_type_display }}</span></td></tr>
+                        <tr><td><strong>Kunlar:</strong></td><td>{{ group.days|default:"-" }}</td></tr>
+                        <tr><td><strong>Boshlanish:</strong></td><td>{{ group.start_date|date:"d.m.Y" }}</td></tr>
+                        <tr><td><strong>Tugash:</strong></td><td>{{ group.end_date|date:"d.m.Y" }}</td></tr>
+                        <tr><td><strong>Qolgan kun:</strong></td><td>
+                            {% if group.remaining_days < 0 %}
+                            <span class="badge badge-red">Tugagan</span>
+                            {% elif group.is_ending_soon %}
+                            <span class="badge badge-red">{{ group.remaining_days }} kun</span>
+                            {% else %}
+                            <span class="badge badge-green">{{ group.remaining_days }} kun</span>
+                            {% endif %}
+                        </td></tr>
+                        {% if group.telegram_link %}
+                        <tr><td><strong>Telegram:</strong></td><td><a href="{{ group.telegram_link }}" target="_blank" style="color: #2563eb;"><i class="fab fa-telegram"></i> Havola</a></td></tr>
+                        {% endif %}
+                        <tr><td><strong>O'quvchilar:</strong></td><td><span class="badge badge-blue">{{ students.count }}</span></td></tr>
+                    </tbody>
+                </table>
+
+                {% if group.lesson_times.all %}
+                <div style="margin-top: 16px;">
+                    <h4 style="margin-bottom: 8px;"><i class="fas fa-clock"></i> Dars vaqtlari</h4>
+                    <table class="table min">
+                        <thead>
+                            <tr>
+                                <th>Kun</th>
+                                <th>Boshlanish</th>
+                                <th>Tugash</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lt in group.lesson_times.all %}
+                            <tr>
+                                <td>{{ lt.get_days_display }}</td>
+                                <td>{{ lt.start_time|time:"H:i" }}</td>
+                                <td>{{ lt.end_time|time:"H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+
+                <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="{% url 'group_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Orqaga</a>
+                </div>
+
+                <details style="margin-top: 16px;">
+                    <summary style="cursor: pointer; padding: 10px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-cog"></i> Sozlamalar
+                    </summary>
+                    <div style="padding: 16px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a href="{% url 'group_settings' group.pk %}" class="btn btn-warning"><i class="fas fa-cog"></i> Tahrirlash</a>
+                        <a href="{% url 'group_extend' group.pk %}" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> Kun qo'shish</a>
+                        <a href="{% url 'group_freeze' group.pk %}" class="btn" style="background: #e0f2fe; color: #0369a1;"><i class="fas fa-snowflake"></i> Muzlatish</a>
+                        {% if group.status != 'arxivlangan' and group.status != 'yopilgan' %}
+                        <a href="{% url 'group_archive' group.pk %}" class="btn" style="background: #fff7ed; color: #c2410c;"><i class="fas fa-archive"></i> Arxivlash</a>
+                        {% endif %}
+                        {% if group.status != 'yopilgan' %}
+                        <a href="{% url 'group_close' group.pk %}" class="btn btn-danger"><i class="fas fa-folder-closed"></i> Yopish</a>
+                        {% endif %}
+                        <a href="{% url 'group_delete' group.pk %}" class="btn btn-danger"><i class="fas fa-trash"></i> O'chirish</a>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-user-graduate"></i> Guruh o'quvchilari ({{ students.count }})</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="table min">
+                    <thead>
+                        <tr>
+                            <th>Ism</th>
+                            <th>Familya</th>
+                            <th>Telefon</th>
+                            <th>Holat</th>
+                            <th>Amal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in students %}
+                        <tr>
+                            <td><a href="{% url 'student_profile' s.pk %}" style="color: #2563eb;">{{ s.first_name }}</a></td>
+                            <td>{{ s.last_name }}</td>
+                            <td>{{ s.phone }}</td>
+                            <td>
+                                {% if s.is_frozen %}
+                                <span class="badge" style="background: #e0f2fe; color: #0369a1;"><i class="fas fa-snowflake"></i> Muzlatilgan</span>
+                                {% else %}
+                                <span class="badge badge-green">Aktiv</span>
+                                {% endif %}
+                            </td>
+                            <td class="actions">
+                                <a href="{% url 'student_profile' s.pk %}" class="btn btn-sm btn-primary" title="Profil"><i class="fas fa-user"></i></a>
+                                <a href="{% url 'student_freeze' s.pk %}" class="btn btn-sm" style="background: #e0f2fe; color: #0369a1;" title="Muzlatish"><i class="fas fa-snowflake"></i></a>
+                                <a href="{% url 'student_remove_from_group' s.pk %}" class="btn btn-sm btn-danger" title="Guruhdan chiqarish"><i class="fas fa-user-minus"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="empty">Guruhda o'quvchilar yo'q</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-clock"></i> Kutilyotgan o'quvchilar ({{ pending.count }})</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="table min">
+                    <thead>
+                        <tr>
+                            <th>Ism</th>
+                            <th>Familya</th>
+                            <th>Telefon</th>
+                            <th>Amal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in pending %}
+                        <tr>
+                            <td><a href="{% url 'student_profile' s.pk %}" style="color: #2563eb;">{{ s.first_name }}</a></td>
+                            <td>{{ s.last_name }}</td>
+                            <td>{{ s.phone }}</td>
+                            <td class="actions">
+                                <a href="{% url 'student_profile' s.pk %}" class="btn btn-sm btn-primary" title="Profil"><i class="fas fa-user"></i></a>
+                                <a href="{% url 'add_student_to_group' group.pk s.pk %}" class="btn btn-sm btn-primary" title="Guruhga qo'shish"><i class="fas fa-user-plus"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="empty">Kutilyotgan o'quvchilar yo'q</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
