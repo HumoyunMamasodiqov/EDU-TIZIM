@@ -1,11 +1,18 @@
 {% extends "base.html" %}
 {% block title %}So'rovnomalar | Edu Tizim{% endblock %}
-{% block page_title %}So'rovnomalar{% endblock %}
 {% block content %}
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>So'rovnomalar</h2>
+        <span class="page-header-count">{{ surveys|length }} ta tur</span>
+    </div>
+    <div class="page-header-right">
+        <a href="{% url 'survey_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Qo'shish</a>
+    </div>
+</div>
 <div class="card">
     <div class="card-header between">
         <h3><i class="fas fa-clipboard-list"></i> So'rovnoma turlari</h3>
-        <a href="{% url 'survey_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Yangi tur</a>
     </div>
     <div class="card-body" style="padding: 0;">
         <table class="table">

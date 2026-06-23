@@ -1,80 +1,178 @@
 {% extends "base.html" %}
-{% block title %}Guruhlar | Edu Tizim{% endblock %}
-{% block page_title %}Guruhlar{% endblock %}
+{% block title %}{{ page_title }} | Edu Tizim{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
 {% block content %}
-<div class="card">
-    <div class="card-header between">
-        <h3><i class="fas fa-users"></i> Barcha guruhlar</h3>
-        <a href="{% url 'group_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Yangi guruh</a>
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>{{ page_title }}</h2>
+        <span class="page-header-count">{{ groups|length }} ta guruh</span>
     </div>
-    <div class="card-body" style="padding: 0;">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Guruh nomi</th>
-                    <th>Kurs</th>
-                    <th>Holati</th>
-                    <th>Ta'lim turi</th>
-                    <th>Dars kunlari</th>
-                    <th>Kunlar</th>
-                    <th>Boshlanish</th>
-                    <th>Tugash</th>
-                    <th>Qoldi</th>
-                    <th>O'quvchilar</th>
-                    <th>Muzlatilgan</th>
-                    <th>Amallar</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for group in groups %}
-                <tr class="{% if group.is_ending_soon %}ending-soon{% endif %}">
-                    <td>{{ forloop.counter }}</td>
-                    <td><strong><a href="{% url 'group_detail' group.pk %}" style="color: #2563eb;">{{ group.name }}</a></strong></td>
-                    <td>{{ group.course.name }}</td>
-                    <td><span class="badge {% if group.status == 'aktiv' %}badge-green{% elif group.status == 'yopilgan' or group.status == 'arxivlangan' %}badge-red{% else %}badge-yellow{% endif %}">{{ group.get_status_display }}</span></td>
-                    <td><span class="badge {% if group.education_type == 'onlayn' %}badge-blue{% else %}badge-purple{% endif %}">{{ group.get_education_type_display }}</span></td>
-                    <td><span class="badge {% if group.day_type == 'toq' %}badge-blue{% elif group.day_type == 'juft' %}badge-orange{% else %}badge-green{% endif %}">{{ group.get_day_type_display }}</span></td>
-                    <td>{{ group.days|default:"-" }}</td>
-                    <td>{{ group.start_date|date:"d.m.Y" }}</td>
-                    <td>{{ group.end_date|date:"d.m.Y" }}</td>
-                    <td>
-                        {% if group.remaining_days < 0 %}
-                        <span class="badge badge-red"><i class="fas fa-times"></i> Tugagan</span>
-                        {% elif group.is_ending_soon %}
-                        <span class="badge badge-red">{{ group.remaining_days }} kun</span>
-                        {% else %}
-                        <span class="badge badge-green">{{ group.remaining_days }} kun</span>
-                        {% endif %}
-                    </td>
-                    <td><span class="badge badge-blue">{{ group.student_count }}</span></td>
-                    <td>
-                        {% if group.frozen_students_count > 0 %}
-                        <span class="badge" style="background: #e0f2fe; color: #0369a1;">{{ group.frozen_students_count }}</span>
-                        {% else %}
-                        <span style="color: #94a3b8;">-</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{% url 'group_detail' group.pk %}" class="btn btn-sm btn-primary"><i class="fas fa-sign-in-alt"></i> Kirish</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="13" class="empty">Hozircha guruhlar mavjud emas</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="page-header-right">
+        {% if not request.GET.status %}
+        <a href="{% url 'group_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Qo'shish</a>
+        {% endif %}
+        <button class="btn btn-secondary btn-icon" title="Import"><i class="fas fa-download"></i> Import</button>
+        <button class="btn btn-secondary btn-icon" title="Export CSV"><i class="fas fa-file-csv"></i> CSV</button>
+        <button class="btn btn-secondary btn-icon" title="Export Excel"><i class="fas fa-file-excel"></i> Excel</button>
     </div>
 </div>
-<style>
-tr.ending-soon {
-    background: #fef2f2 !important;
-}
-tr.ending-soon:hover td {
-    background: #fee2e2 !important;
-}
-tr.ending-soon td:first-child {
-    border-left: 4px solid #dc2626;
-}
-</style>
+
+<div class="filter-bar">
+    <form method="GET" class="filter-form" id="filterForm">
+        <div class="filter-group">
+            <label>O'qituvchi</label>
+            <select name="teacher" class="filter-select">
+                <option value="">Barchasi</option>
+                {% for t in teachers %}
+                <option value="{{ t.pk }}" {% if request.GET.teacher == t.pk|stringformat:'s' %}selected{% endif %}>{{ t.first_name }} {{ t.last_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Boshlanish vaqti</label>
+            <input type="time" name="time_from" value="{{ request.GET.time_from }}" class="filter-input">
+        </div>
+        <div class="filter-group">
+            <label>Tugash vaqti</label>
+            <input type="time" name="time_to" value="{{ request.GET.time_to }}" class="filter-input">
+        </div>
+        <div class="filter-group">
+            <label>Hafta kuni</label>
+            <select name="day" class="filter-select">
+                <option value="">Barchasi</option>
+                <option value="dushanba" {% if request.GET.day == 'dushanba' %}selected{% endif %}>Dushanba</option>
+                <option value="seshanba" {% if request.GET.day == 'seshanba' %}selected{% endif %}>Seshanba</option>
+                <option value="chorshanba" {% if request.GET.day == 'chorshanba' %}selected{% endif %}>Chorshanba</option>
+                <option value="payshanba" {% if request.GET.day == 'payshanba' %}selected{% endif %}>Payshanba</option>
+                <option value="juma" {% if request.GET.day == 'juma' %}selected{% endif %}>Juma</option>
+                <option value="shanba" {% if request.GET.day == 'shanba' %}selected{% endif %}>Shanba</option>
+                <option value="yakshanba" {% if request.GET.day == 'yakshanba' %}selected{% endif %}>Yakshanba</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Kurs</label>
+            <select name="course" class="filter-select">
+                <option value="">Barchasi</option>
+                {% for c in courses %}
+                <option value="{{ c.pk }}" {% if request.GET.course == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Xona</label>
+            <select name="room" class="filter-select">
+                <option value="">Barchasi</option>
+                {% for r in rooms %}
+                <option value="{{ r.pk }}" {% if request.GET.room == r.pk|stringformat:'s' %}selected{% endif %}>{{ r.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Holati</label>
+            <select name="status" class="filter-select" onchange="this.form.submit()">
+                <option value="">Barchasi</option>
+                <option value="aktiv" {% if request.GET.status == 'aktiv' %}selected{% endif %}>Aktiv</option>
+                <option value="kutilyotgan" {% if request.GET.status == 'kutilyotgan' %}selected{% endif %}>Kutilyotgan</option>
+                <option value="arxivlangan" {% if request.GET.status == 'arxivlangan' %}selected{% endif %}>Arxivlangan</option>
+            </select>
+        </div>
+        <div class="filter-group filter-group-search">
+            <label>Qidiruv</label>
+            <div class="filter-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" name="search" value="{{ request.GET.search }}" class="filter-search" placeholder="Guruh nomi...">
+            </div>
+        </div>
+        <div class="filter-group filter-group-actions">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtr</button>
+            <a href="{% url 'group_list' %}{% if request.GET.status %}?status={{ request.GET.status }}{% endif %}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+        </div>
+    </form>
+</div>
+
+<div class="data-table-wrap">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th class="col-num">№</th>
+                <th class="col-name">Guruh nomi</th>
+                <th class="col-course">Kurs</th>
+                <th class="col-level">Daraja</th>
+                <th class="col-day">Kun</th>
+                <th class="col-time">Dars vaqti</th>
+                <th class="col-range">Guruh vaqti</th>
+                <th class="col-students">O'quvchilar</th>
+                <th class="col-teacher">O'qituvchi</th>
+                <th class="col-room">Xona</th>
+                <th class="col-tg">Telegram</th>
+                <th class="col-status">Holati</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr class="{% if group.status == 'kutilyotgan' %}row-pending{% elif group.is_date_overdue or group.is_ending_soon %}row-overdue{% endif %}">
+                <td class="col-num">{{ forloop.counter }}</td>
+                <td class="col-name">
+                    <a href="{% url 'group_detail' group.pk %}" class="group-link">{{ group.name }}</a>
+                </td>
+                <td class="col-course"><span class="course-tag">{{ group.course.name }}</span></td>
+                <td class="col-level"><span class="level-badge">{{ group.education_type|title }}</span></td>
+                <td class="col-day">
+                    {% with lt=group.lesson_times.all|first %}
+                        {% if lt %}
+                        <span class="day-text">{{ lt.get_days_display }}</span>
+                        {% else %}
+                        <span class="muted">-</span>
+                        {% endif %}
+                    {% endwith %}
+                </td>
+                <td class="col-time">
+                    {% with lt=group.lesson_times.all|first %}
+                        {% if lt %}
+                        <span class="time-text">{{ lt.start_time|time:"H:i" }} - {{ lt.end_time|time:"H:i" }}</span>
+                        {% else %}
+                        <span class="muted">-</span>
+                        {% endif %}
+                    {% endwith %}
+                </td>
+                <td class="col-range">
+                    <span class="range-text">{{ group.start_date|date:"d.m.Y" }} - {{ group.end_date|date:"d.m.Y" }}</span>
+                </td>
+                <td class="col-students">
+                    <span class="student-count">{{ group.student_count }}</span>
+                </td>
+                <td class="col-teacher">
+                    {% if group.teacher %}
+                    <span>{{ group.teacher.first_name }} {{ group.teacher.last_name }}</span>
+                    {% else %}
+                    <span class="muted">-</span>
+                    {% endif %}
+                </td>
+                <td class="col-room">
+                    {% if group.room %}
+                    <span>{{ group.room.name }}</span>
+                    {% else %}
+                    <span class="muted">-</span>
+                    {% endif %}
+                </td>
+                <td class="col-tg">
+                    {% if group.telegram_link %}
+                    <a href="{{ group.telegram_link }}" target="_blank" class="tg-link"><i class="fab fa-telegram-plane"></i></a>
+                    {% else %}
+                    <span class="muted">-</span>
+                    {% endif %}
+                </td>
+                <td class="col-status">
+                    <span class="status-badge status-{{ group.status }}">{{ group.get_status_display }}</span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="12" class="empty">{{ page_title }} mavjud emas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

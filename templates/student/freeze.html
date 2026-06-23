@@ -8,15 +8,14 @@
     </div>
     <div class="card-body">
         <div style="background: #f0f9ff; border-radius: 10px; padding: 16px; margin-bottom: 24px; text-align: center;">
-            <p style="color: #64748b; font-size: 0.9rem;">Joriy guruhi</p>
+            <p style="color: #64748b; font-size: 0.9rem;">Joriy guruhlari</p>
             <p style="font-size: 1.1rem; font-weight: 700; color: #1e293b;">
-                {% if student.group %}{{ student.group.name }}{% else %}Guruhsiz{% endif %}
+                {% with gs=student.groups.all %}
+                    {% if gs %}
+                        {% for g in gs %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    {% else %}Guruhsiz{% endif %}
+                {% endwith %}
             </p>
-            {% if student.group %}
-            <p style="color: #64748b; font-size: 0.85rem; margin-top: 4px;">
-                Guruh tugash sanasi: {{ student.group.end_date|date:"d.m.Y" }}
-            </p>
-            {% endif %}
         </div>
         <form method="post">
             {% csrf_token %}

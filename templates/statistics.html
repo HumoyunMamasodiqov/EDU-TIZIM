@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Statistika | Edu Tizim{% endblock %}
-{% block page_title %}Statistika{% endblock %}
 {% block content %}
-
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>Statistika</h2>
+    </div>
+</div>
 <div class="stats-grid">
     <div class="stat-card blue">
         <div class="stat-icon"><i class="fas fa-book"></i></div>
@@ -154,7 +157,7 @@
                 {% for s in recent_students %}
                 <tr>
                     <td>{{ s.first_name }} {{ s.last_name }}</td>
-                    <td>{{ s.group.name|default:"-" }}</td>
+                    <td>{% with gs=s.groups.all %}{% if gs %}{% for g in gs %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}{% endwith %}</td>
                     <td>{{ s.phone }}</td>
                     <td>{{ s.marketing_survey.name|default:"-" }}</td>
                 </tr>

@@ -66,20 +66,31 @@ class Group(models.Model):
     )
     days = models.CharField(max_length=255, blank=True, null=True, verbose_name="Kunlarni yozing")
     telegram_link = models.URLField(blank=True, null=True, verbose_name="Telegram guruh havolasi")
-    start_date = models.DateField(verbose_name="Boshlanish sanasi")
-    end_date = models.DateField(verbose_name="Tugash sanasi")
+    room = models.ForeignKey(
+        "Room", on_delete=models.SET_NULL, null=True, blank=True, related_name="groups", verbose_name="Xona"
+    )
+    teacher = models.ForeignKey(
+        "Employee", on_delete=models.SET_NULL, null=True, blank=True, related_name="teacher_groups", verbose_name="O'qituvchi"
+    )
+    start_date = models.DateField(null=True, blank=True, verbose_name="Boshlanish sanasi")
+    end_date = models.DateField(null=True, blank=True, verbose_name="Tugash sanasi")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_ending_soon(self):
         if not self.end_date:
             return False
         remaining = (self.end_date - date.today()).days
-        return 0 <= remaining <= 7
+        return 0 <= remaining <= 10
 
     def remaining_days(self):
         if not self.end_date:
             return None
         return (self.end_date - date.today()).days
+
+    def is_date_overdue(self):
+        if not self.end_date:
+            return False
+        return self.end_date < date.today()
 
     @property
     def frozen_students_count(self):
@@ -101,8 +112,12 @@ class Student(models.Model):
     first_name = models.CharField(max_length=255, verbose_name="Ism")
     last_name = models.CharField(max_length=255, verbose_name="Familya")
     phone = models.CharField(max_length=20, verbose_name="Telefon raqam")
-    group = models.ForeignKey(
-        Group, on_delete=models.SET_NULL, null=True, blank=True, related_name="students", verbose_name="Guruh"
+    groups = models.ManyToManyField(Group, blank=True, related_name="students", verbose_name="Guruhlar")
+    graduated_groups = models.ManyToManyField(
+        Group, blank=True, related_name="graduated_students", verbose_name="Bitirilgan guruhlar"
+    )
+    desired_course = models.ForeignKey(
+        Course, on_delete=models.SET_NULL, null=True, blank=True, related_name="interested_students", verbose_name="Qiziqqan kursi"
     )
     frozen_until = models.DateField(null=True, blank=True, verbose_name="Muzlatish tugash sanasi")
     status = models.CharField(
@@ -206,3 +221,85 @@ class StudentLog(models.Model):
         verbose_name = "O'quvchi harakati"
         verbose_name_plural = "O'quvchi harakatlari"
         ordering = ["-created_at"]
+
+
+class Branch(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Filial nomi")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Filial"
+        verbose_name_plural = "Filiallar"
+
+
+class Room(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Xona nomi")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Xona"
+        verbose_name_plural = "Xonalar"
+
+
+class Role(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Rol nomi")
+    level = models.CharField(max_length=50, blank=True, null=True, verbose_name="Daraja")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Rol"
+        verbose_name_plural = "Rollar"
+
+
+class Position(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Vazifa nomi")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Vazifa"
+        verbose_name_plural = "Vazifalar"
+
+
+class Employee(models.Model):
+    class Gender(models.TextChoices):
+        MALE = "erkak", "Erkak"
+        FEMALE = "ayol", "Ayol"
+
+    user = models.OneToOneField(
+        "auth.User", on_delete=models.CASCADE, null=True, blank=True,
+        related_name="employee_profile", verbose_name="Foydalanuvchi"
+    )
+    first_name = models.CharField(max_length=255, verbose_name="Ism")
+    last_name = models.CharField(max_length=255, verbose_name="Familiya")
+    phone = models.CharField(max_length=20, verbose_name="Telefon raqam")
+    email = models.EmailField(blank=True, null=True, verbose_name="Elektron pochta")
+    gender = models.CharField(max_length=10, choices=Gender.choices, blank=True, null=True, verbose_name="Jinsi")
+    birth_date = models.DateField(blank=True, null=True, verbose_name="Tug'ilgan sanasi")
+    position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Vazifasi")
+    photo = models.ImageField(upload_to="employees/", blank=True, null=True, verbose_name="Profil rasmi")
+    salary_enabled = models.BooleanField(default=False, verbose_name="Ish haqi chiqarish")
+    branches = models.ManyToManyField(Branch, blank=True, verbose_name="Filiallar")
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Rol")
+    salary_same = models.BooleanField(default=False, verbose_name="Hammaga bir xil")
+    salary = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Ish haqi")
+    notes = models.TextField(blank=True, null=True, verbose_name="Izoh")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+    class Meta:
+        verbose_name = "Xodim"
+        verbose_name_plural = "Xodimlar"

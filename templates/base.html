@@ -13,41 +13,131 @@
     <div class="layout">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
-                    <rect width="32" height="32" rx="8" fill="white"/>
-                    <path d="M16 6L8 10.5V16.5C8 21.52 11.58 26.24 16 27.5C20.42 26.24 24 21.52 24 16.5V10.5L16 6Z" fill="#2563eb" stroke="white" stroke-width="1.5"/>
-                    <path d="M13.5 16.5L15.5 18.5L18.5 14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="sidebar-brand">Edu Tizim</span>
+                <div class="sidebar-logo">ET</div>
+                <span class="sidebar-brand"><span>Edu</span> Tizim</span>
             </div>
             <nav class="sidebar-nav">
+                <div class="nav-section-label">Asosiy</div>
                 <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <i class="fas fa-th-large"></i>
                     <span>Dashboard</span>
                 </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-tasks"></i>
+                    <span>Topshiriqlar</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Lidlar</span>
+                </a>
+
+                <div class="nav-section-label">O'quv jarayoni</div>
+                <div class="nav-group">
+                    <div style="display:flex;align-items:center;">
+                        <i class="fas fa-chevron-right nav-chevron nav-toggle" onclick="toggleGroupNav(this)" style="cursor:pointer;padding:9px 4px 9px 14px;font-size:0.7rem;color:var(--text-muted);{% if request.resolver_match.url_name == 'group_list' %}transform:rotate(90deg);{% endif %}"></i>
+                        <a href="{% url 'group_list' %}" class="nav-item {% if request.resolver_match.url_name == 'group_list' and not request.GET.status %}active{% endif %}" style="flex:1;border-radius:0;" onclick="event.stopPropagation()">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Guruhlar</span>
+                        </a>
+                    </div>
+                    <div class="nav-sub-items" style="{% if request.resolver_match.url_name == 'group_list' %}display:block;{% else %}display:none;{% endif %}">
+                        <a href="{% url 'group_list' %}" class="nav-item sub-item {% if request.resolver_match.url_name == 'group_list' and not request.GET.status %}active{% endif %}">
+                            <span>Aktiv guruhlar</span>
+                        </a>
+                        <a href="{% url 'group_list' %}?status=arxivlangan" class="nav-item sub-item {% if request.GET.status == 'arxivlangan' %}active{% endif %}">
+                            <i class="fas fa-archive" style="color:#c2410c;"></i>
+                            <span>Arxivlangan guruhlar</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="nav-group">
+                    <div style="display:flex;align-items:center;">
+                        <i class="fas fa-chevron-right nav-chevron nav-toggle" onclick="toggleGroupNav(this)" style="cursor:pointer;padding:9px 4px 9px 14px;font-size:0.7rem;color:var(--text-muted);{% if request.resolver_match.url_name == 'student_list' or request.resolver_match.url_name == 'pending_students' %}transform:rotate(90deg);{% endif %}"></i>
+                        <a href="{% url 'student_list' %}" class="nav-item {% if request.resolver_match.url_name == 'student_list' %}active{% endif %}" style="flex:1;border-radius:0;" onclick="event.stopPropagation()">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>O'quvchilar</span>
+                        </a>
+                    </div>
+                    <div class="nav-sub-items" style="{% if request.resolver_match.url_name == 'student_list' or request.resolver_match.url_name == 'pending_students' %}display:block;{% else %}display:none;{% endif %}">
+                        <a href="{% url 'pending_students' %}" class="nav-item sub-item {% if request.resolver_match.url_name == 'pending_students' %}active{% endif %}">
+                            <i class="fas fa-clock" style="color:#f59e0b;"></i>
+                            <span>Kutilyotgan o'quvchilar</span>
+                        </a>
+                    </div>
+                </div>
+                <a href="{% url 'graduated_students' %}" class="nav-item {% if request.resolver_match.url_name == 'graduated_students' %}active{% endif %}">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Bitirilganlar</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-trophy"></i>
+                    <span>Gamifikatsiya</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-book-open"></i>
+                    <span>O'quv bo'limi</span>
+                </a>
+
+                <div class="nav-section-label">Moliya va nazorat</div>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-coins"></i>
+                    <span>Moliya</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Nazorat</span>
+                </a>
+                <a href="{% url 'employee_list' %}" class="nav-item {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span>Xodimlar</span>
+                </a>
+                <a href="{% url 'employee_create' %}" class="nav-item {% if request.resolver_match.url_name == 'employee_create' %}active{% endif %}">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Xodim qo'shish</span>
+                </a>
+                <a href="{% url 'branch_list' %}" class="nav-item {% if request.resolver_match.url_name == 'branch_list' %}active{% endif %}">
+                    <i class="fas fa-building"></i>
+                    <span>Filiallar</span>
+                </a>
+                <a href="{% url 'room_list' %}" class="nav-item {% if request.resolver_match.url_name == 'room_list' %}active{% endif %}">
+                    <i class="fas fa-door-open"></i>
+                    <span>Xonalar</span>
+                </a>
+                <a href="{% url 'role_list' %}" class="nav-item {% if request.resolver_match.url_name == 'role_list' %}active{% endif %}">
+                    <i class="fas fa-user-tag"></i>
+                    <span>Rollar</span>
+                </a>
+                <a href="{% url 'position_list' %}" class="nav-item {% if request.resolver_match.url_name == 'position_list' %}active{% endif %}">
+                    <i class="fas fa-tasks"></i>
+                    <span>Vazifalar</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cogs"></i>
+                    <span>Boshqaruv</span>
+                </a>
+
+                <div class="nav-section-label">Marketing va hisobot</div>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Sotuv va marketing</span>
+                </a>
                 <a href="{% url 'statistics' %}" class="nav-item {% if request.resolver_match.url_name == 'statistics' %}active{% endif %}">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Statistika</span>
+                    <i class="fas fa-file-alt"></i>
+                    <span>Hisobotlar</span>
                 </a>
                 <a href="{% url 'course_list' %}" class="nav-item {% if 'course' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="fas fa-book"></i>
                     <span>Kurslar</span>
                 </a>
-                <a href="{% url 'group_list' %}" class="nav-item {% if 'group' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-users"></i>
-                    <span>Guruhlar</span>
-                </a>
-                <a href="{% url 'student_list' %}" class="nav-item {% if 'student' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-user-graduate"></i>
-                    <span>O'quvchilar</span>
-                </a>
-                <a href="{% url 'pending_students' %}" class="nav-item {% if 'pending' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-clock"></i>
-                    <span>Kutilyotganlar</span>
-                </a>
                 <a href="{% url 'survey_list' %}" class="nav-item {% if 'survey' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="fas fa-clipboard-list"></i>
                     <span>So'rovnomalar</span>
+                </a>
+
+                <div class="nav-section-label">Sozlamalar</div>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Sozlamalar</span>
                 </a>
             </nav>
             <div class="sidebar-footer">
@@ -59,12 +149,35 @@
         </aside>
         <main class="main-content">
             <header class="topbar">
-                <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+                <div class="topbar-left">
+                    <a href="{% url 'dashboard' %}" class="topbar-back">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <div class="topbar-academy">
+                        <i class="fas fa-graduation-cap" style="color: var(--primary);"></i>
+                        IT House Akademiyasi
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                <div class="topbar-center">
+                    <i class="fas fa-search topbar-search-icon"></i>
+                    <input type="text" class="topbar-search" placeholder="Qidirish...">
+                </div>
                 <div class="topbar-right">
-                    <span class="user-info">
-                        <i class="fas fa-user-circle"></i>
-                        {{ request.user.username }}
-                    </span>
+                    <div class="topbar-lang">
+                        <i class="fas fa-globe"></i>
+                        UZ
+                    </div>
+                    <a href="#" class="topbar-btn">
+                        <i class="far fa-bell"></i>
+                        <span class="badge-dot"></span>
+                    </a>
+                    <a href="#" class="topbar-btn">
+                        <i class="far fa-envelope"></i>
+                    </a>
+                    <div class="topbar-avatar">
+                        {{ request.user.username|first|upper }}
+                    </div>
                 </div>
             </header>
             <div class="content">
@@ -92,6 +205,16 @@
         setTimeout(() => {
             document.querySelectorAll('.alert').forEach(el => el.remove());
         }, 5000);
+        function toggleGroupNav(chevron) {
+            var sub = chevron.closest('.nav-group').querySelector('.nav-sub-items');
+            if (sub.style.display === 'none') {
+                sub.style.display = 'block';
+                chevron.style.transform = 'rotate(90deg)';
+            } else {
+                sub.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
     </script>
 </body>
 </html>
