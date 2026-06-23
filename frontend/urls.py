@@ -58,4 +58,5 @@ urlpatterns = [
     path("surveys/create/", views.survey_create, name="survey_create"),
     path("surveys/<int:pk>/update/", views.survey_update, name="survey_update"),
     path("surveys/<int:pk>/delete/", views.survey_delete, name="survey_delete"),
+    path("log/<int:pk>/dismiss/", views.dismiss_removed_log, name="dismiss_removed_log"),
 ]

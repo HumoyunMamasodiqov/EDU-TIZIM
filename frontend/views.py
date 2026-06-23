@@ -991,3 +991,13 @@ def survey_delete(request, pk):
         messages.success(request, "So'rovnoma muvaffaqiyatli o'chirildi")
         return redirect("survey_list")
     return render(request, "survey/delete.html", {"object": survey, "title": "So'rovnomani o'chirish"})
+
+
+@login_required(login_url="login")
+def dismiss_removed_log(request, pk):
+    from django.http import JsonResponse
+    if request.method == "POST":
+        log = get_object_or_404(StudentLog, pk=pk)
+        log.delete()
+        return JsonResponse({"ok": True})
+    return JsonResponse({"ok": False}, status=405)
