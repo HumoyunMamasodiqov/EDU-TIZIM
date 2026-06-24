@@ -17,7 +17,7 @@
         @media (max-width: 767px) {
             .mobile-view { display: block; }
             .desktop-view { display: none; }
-            body { background: #f5f7fc; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 0; }
+            body { background: #f5f7fc;  justify-content: center; align-items: flex-start; min-height: 100vh; padding: 0; }
             .t-app { max-width: 480px; width: 100%; min-height: 100vh; background: #ffffff; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
             .t-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #2001ff; color: #fff; position: sticky; top: 0; z-index: 20; }
             .t-h-left { display: flex; align-items: center; gap: 14px; }
@@ -35,7 +35,7 @@
             .t-section span { font-size: 13px; color: #2001ff; background: #eef1ff; padding: 4px 14px; border-radius: 20px; font-weight: 600; }
             .t-groups { display: flex; flex-direction: column; gap: 12px; }
             .t-groups > div { background: #f4f4f4; border-radius: 14px; border: 1px solid #eee; overflow: hidden; }
-            .t-group { display: block; padding: 14px 16px 12px; text-decoration: none; color: inherit; background: #fff; border-left: 4px solid #2001ff; }
+            .t-group { display: block; padding: 14px 16px 12px; text-decoration: none; color: inherit; background: #fff; }
             .t-group.done { border-left-color: #2001ff; }
             .t-group.cancelled { border-left-color: #ff6b6b; }
             .t-g-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -295,7 +295,7 @@
                             <div class="t-g-row"><i class="far fa-clock"></i> <span class="v">{{ item.lesson_display }}</span></div>
                         </div>
                     </a>
-                    <div class="t-g-count"><i class="fas fa-user-graduate"></i> <strong>{{ item.student_count }}</strong> ta o'quvchi</div>
+
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -456,7 +456,7 @@
             </div>
             <nav class="sidebar-nav">
                 <a href="{% url 'teacher_dashboard' %}" class="active"><i class="fas fa-th-large"></i> Dashboard</a>
-                <a href="#"><i class="fas fa-users"></i> Mening guruhlarim</a>
+                <a href="#" onclick="document.getElementById('groupsSection').scrollIntoView({behavior:'smooth'});return false;"><i class="fas fa-users"></i> Mening guruhlarim</a>
                 <a href="#"><i class="fas fa-calendar-check"></i> Davomat</a>
                 <a href="#"><i class="fas fa-clock"></i> Dars jadvali</a>
                 <a href="#"><i class="fas fa-tasks"></i> Topshiriqlar</a>
@@ -502,7 +502,7 @@
 
                 <div class="content-row">
                     <div class="content-main">
-                        <div class="section-header">
+                        <div class="section-header" id="groupsSection">
                             <h2><i class="fas fa-users" style="color:var(--brand);"></i> Guruhlarim</h2>
                             <div class="date-filter">
                                 <button class="pill" onclick="openDesktopPicker()"><i class="far fa-calendar-alt"></i> {% if selected_date_display %}{{ selected_date_display }}{% else %}Bugun{% endif %}</button>
