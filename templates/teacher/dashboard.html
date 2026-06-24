@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'fontawesomefree/css/all.min.css' %}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        :root { --green: #00B14F; --green-hover: #009944; --green-light: #e8f8ef; --green-bg: #f0fdf5; --text: #1a1a2e; --text-secondary: #6b7280; --border: #e5e7eb; --bg: #f8fafc; --sidebar-bg: #ffffff; --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); --card-shadow-hover: 0 10px 25px rgba(0,0,0,0.08); --radius: 12px; --radius-sm: 8px; }
+        :root { --brand: #2001ff; --brand-hover: #1a00d9; --brand-light: #eef0ff; --brand-bg: #f5f6ff; --brand-gradient: linear-gradient(135deg, #2001ff, #5845ff); --text: #1a1a2e; --text-secondary: #6b7280; --border: #e5e7eb; --bg: #f8fafc; --sidebar-bg: #ffffff; --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); --card-shadow-hover: 0 10px 25px rgba(0,0,0,0.08); --radius: 12px; --radius-sm: 8px; }
 
         body { background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -19,14 +19,14 @@
         .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; transition: transform 0.3s ease; }
         .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
         .sidebar-logo h1 { font-size: 18px; color: var(--text); display: flex; align-items: center; gap: 10px; font-weight: 700; }
-        .sidebar-logo h1 i { color: var(--green); font-size: 24px; width: 32px; height: 32px; background: var(--green-light); display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .sidebar-logo h1 i { color: var(--brand); font-size: 24px; width: 32px; height: 32px; background: var(--brand-light); display: flex; align-items: center; justify-content: center; border-radius: 8px; }
         .sidebar-logo span { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 2px; padding-left: 42px; }
 
         .sidebar-nav { flex: 1; padding: 12px 12px; overflow-y: auto; }
         .sidebar-nav a { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-radius: var(--radius-sm); color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.2s; margin-bottom: 2px; }
         .sidebar-nav a i { width: 20px; text-align: center; font-size: 16px; }
         .sidebar-nav a:hover { background: #f3f4f6; color: var(--text); }
-        .sidebar-nav a.active { background: var(--green); color: #fff; font-weight: 600; box-shadow: 0 4px 12px rgba(0,177,79,0.25); }
+        .sidebar-nav a.active { background: var(--brand); color: #fff; font-weight: 600; box-shadow: 0 4px 12px rgba(32,1,255,0.25); }
         .sidebar-nav a .badge { margin-left: auto; background: #fee2e2; color: #dc2626; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
         .sidebar-nav a.active .badge { background: rgba(255,255,255,0.25); color: #fff; }
         .sidebar-nav .nav-label { font-size: 11px; color: var(--text-secondary); padding: 16px 16px 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
@@ -43,7 +43,7 @@
         .topbar-search { position: relative; flex: 1; max-width: 400px; }
         .topbar-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 15px; }
         .topbar-search input { width: 100%; padding: 10px 14px 10px 40px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; background: var(--bg); outline: none; transition: border 0.2s; }
-        .topbar-search input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(0,177,79,0.1); }
+        .topbar-search input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(32,1,255,0.1); }
 
         .topbar-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
         .topbar-notif { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg); cursor: pointer; transition: background 0.2s; }
@@ -53,7 +53,7 @@
 
         .topbar-profile { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 4px 8px 4px 4px; border-radius: var(--radius-sm); transition: background 0.2s; }
         .topbar-profile:hover { background: var(--bg); }
-        .topbar-profile .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--green-light); color: var(--green); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+        .topbar-profile .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--brand-light); color: var(--brand); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
         .topbar-profile .info { line-height: 1.3; }
         .topbar-profile .name { font-size: 14px; font-weight: 600; color: var(--text); }
         .topbar-profile .role { font-size: 12px; color: var(--text-secondary); }
@@ -69,7 +69,7 @@
         .stat-card { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: var(--card-shadow); transition: box-shadow 0.2s, transform 0.2s; }
         .stat-card:hover { box-shadow: var(--card-shadow-hover); transform: translateY(-2px); }
         .stat-card .icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 14px; }
-        .stat-card .icon.green { background: var(--green-light); color: var(--green); }
+        .stat-card .icon.green { background: var(--brand-light); color: var(--brand); }
         .stat-card .icon.blue { background: #eff6ff; color: #2563eb; }
         .stat-card .icon.orange { background: #fff7ed; color: #ea580c; }
         .stat-card .icon.purple { background: #f5f3ff; color: #7c3aed; }
@@ -87,8 +87,8 @@
         /* ===== DATE FILTER PILL ===== */
         .date-filter { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .date-filter .pill { padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border); background: #fff; font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-        .date-filter .pill:hover { border-color: var(--green); color: var(--green); }
-        .date-filter .pill.active { background: var(--green); color: #fff; border-color: var(--green); }
+        .date-filter .pill:hover { border-color: var(--brand); color: var(--brand); }
+        .date-filter .pill.active { background: var(--brand); color: #fff; border-color: var(--brand); }
         .date-filter .pill i { font-size: 12px; }
 
         /* ===== TABLE ===== */
@@ -106,16 +106,16 @@
         .group-cell .g-subject { font-size: 12px; color: var(--text-secondary); }
 
         .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-        .status-badge.active { background: var(--green-light); color: var(--green); }
+        .status-badge.active { background: var(--brand-light); color: var(--brand); }
         .status-badge.upcoming { background: #fff7ed; color: #ea580c; }
         .status-badge.finished { background: #f3f4f6; color: var(--text-secondary); }
         .status-badge.expired { background: #fef2f2; color: #dc2626; }
 
         .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; transition: all 0.2s; }
-        .btn-green { background: var(--green); color: #fff; }
-        .btn-green:hover { background: var(--green-hover); box-shadow: 0 4px 12px rgba(0,177,79,0.3); }
+        .btn-green { background: var(--brand); color: #fff; }
+        .btn-green:hover { background: var(--brand-hover); box-shadow: 0 4px 12px rgba(32,1,255,0.3); }
         .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
-        .btn-outline:hover { border-color: var(--green); color: var(--green); }
+        .btn-outline:hover { border-color: var(--brand); color: var(--brand); }
         .btn-sm { padding: 6px 12px; font-size: 12px; }
         .btn-block { width: 100%; justify-content: center; }
         .btn-green.btn-block:hover { transform: translateY(-1px); }
@@ -125,13 +125,13 @@
         .widget { background: #fff; border-radius: var(--radius); box-shadow: var(--card-shadow); overflow: hidden; }
         .widget-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
         .widget-header h3 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .widget-header .see-all { font-size: 12px; color: var(--green); text-decoration: none; font-weight: 500; }
+        .widget-header .see-all { font-size: 12px; color: var(--brand); text-decoration: none; font-weight: 500; }
         .widget-body { padding: 12px 16px; }
 
         .lesson-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
         .lesson-item:last-child { border-bottom: none; }
         .lesson-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .lesson-item .dot.green { background: var(--green); }
+        .lesson-item .dot.green { background: var(--brand); }
         .lesson-item .dot.orange { background: #fb923c; }
         .lesson-item .dot.blue { background: #60a5fa; }
         .lesson-item .info { flex: 1; min-width: 0; }
@@ -150,16 +150,16 @@
         .cal-grid .day-name { text-align: center; font-size: 11px; color: var(--text-secondary); font-weight: 600; padding: 6px 0; text-transform: uppercase; }
         .cal-grid .day { text-align: center; padding: 6px 0; font-size: 13px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
         .cal-grid .day:hover { background: var(--bg); }
-        .cal-grid .day.today { background: var(--green); color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(0,177,79,0.3); }
+        .cal-grid .day.today { background: var(--brand); color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(32,1,255,0.3); }
         .cal-grid .day.other { color: #d1d5db; }
         .cal-grid .day.has-lesson { position: relative; }
-        .cal-grid .day.has-lesson::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+        .cal-grid .day.has-lesson::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--brand); }
         .cal-grid .day.today.has-lesson::after { background: rgba(255,255,255,0.7); }
 
         /* ===== QUICK ACTIONS ===== */
         .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 4px; }
         .qa-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 8px; border-radius: var(--radius-sm); background: var(--bg); text-decoration: none; color: var(--text); transition: all 0.2s; }
-        .qa-btn:hover { background: var(--green-light); color: var(--green); transform: translateY(-1px); }
+        .qa-btn:hover { background: var(--brand-light); color: var(--brand); transform: translateY(-1px); }
         .qa-btn i { font-size: 20px; }
         .qa-btn span { font-size: 12px; font-weight: 500; text-align: center; }
 
@@ -167,7 +167,7 @@
         .notif-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
         .notif-item:last-child { border-bottom: none; }
         .notif-item .n-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-        .notif-item .n-icon.green { background: var(--green-light); color: var(--green); }
+        .notif-item .n-icon.green { background: var(--brand-light); color: var(--brand); }
         .notif-item .n-icon.blue { background: #eff6ff; color: #2563eb; }
         .notif-item .n-icon.orange { background: #fff7ed; color: #ea580c; }
         .notif-item .n-text { flex: 1; }
@@ -192,10 +192,10 @@
         .picker-actions { display: flex; gap: 10px; margin-top: 16px; }
         .picker-actions button { flex: 1; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
         .picker-actions .btn-cancel { background: var(--bg); color: var(--text-secondary); }
-        .picker-actions .btn-done { background: var(--green); color: #fff; }
+        .picker-actions .btn-done { background: var(--brand); color: #fff; }
         .picker-actions .btn-done:hover { opacity: 0.9; }
         .picker-check { display: flex; align-items: center; gap: 10px; padding: 10px 4px; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
-        .picker-check input { width: 18px; height: 18px; accent-color: var(--green); }
+        .picker-check input { width: 18px; height: 18px; accent-color: var(--brand); }
 
         /* ===== RESPONSIVE ===== */
         .mobile-only { display: none; }
@@ -219,46 +219,112 @@
             .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 99; }
             .sidebar-overlay.show { display: block; }
             .main { margin-left: 0; }
-            .topbar { padding: 0 16px; height: 60px; }
-            .topbar-search { max-width: 100%; }
-            .topbar-search input { font-size: 14px; }
-            .topbar-profile .info { display: none; }
-            .content { padding: 16px; }
-            .welcome h1 { font-size: 20px; }
-            .stats { grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 20px; }
-            .stat-card { padding: 14px; }
-            .stat-card .icon { width: 36px; height: 36px; font-size: 15px; margin-bottom: 10px; }
+
+            /* iOS-style top nav */
+            .topbar { padding: 0 16px; height: 56px; background: var(--brand-gradient); border-bottom: none; position: sticky; top: 0; z-index: 50; gap: 12px; }
+            .topbar .topbar-search { display: none; }
+            .topbar-actions { margin-left: 0; width: 100%; display: flex; align-items: center; justify-content: space-between; }
+            .topbar-actions .mob-title { color: #fff; font-size: 17px; font-weight: 600; }
+            .topbar-actions .mob-left { display: flex; align-items: center; gap: 12px; }
+            .topbar-actions .mob-right { display: flex; align-items: center; gap: 12px; }
+            .topbar-actions .topbar-notif { background: rgba(255,255,255,0.15); }
+            .topbar-actions .topbar-notif i { color: #fff; }
+            .topbar-actions .topbar-notif .badge { border-color: var(--brand); }
+            .topbar-actions .topbar-profile .avatar { width: 32px; height: 32px; font-size: 12px; background: rgba(255,255,255,0.25); color: #fff; }
+            .topbar-actions .topbar-profile .info { display: none; }
+            .topbar-actions .hamburger { background: none; border: none; font-size: 22px; cursor: pointer; color: #fff; padding: 4px; }
+
+            .content { padding: 0; padding-bottom: 90px; }
+            .welcome { padding: 20px 16px 0; }
+            .welcome h1 { font-size: 22px; font-weight: 700; }
+            .welcome p { font-size: 13px; color: var(--text-secondary); }
+
+            .stats { grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 16px 20px; }
+            .stat-card { padding: 14px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+            .stat-card:hover { transform: none; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+            .stat-card .icon { width: 36px; height: 36px; font-size: 15px; margin-bottom: 10px; border-radius: 10px; }
             .stat-card .value { font-size: 22px; }
-            .content-row { flex-direction: column; }
-            .right-sidebar { width: 100%; display: flex; flex-direction: column; gap: 16px; }
+            .stat-card .label { font-size: 11px; }
 
-            .table-wrap { overflow-x: auto; }
-            .table-wrap table { min-width: 640px; }
-            .table-wrap th, .table-wrap td { padding: 10px 12px; font-size: 13px; }
+            .content-row { flex-direction: column; gap: 0; }
+            .content-main { padding: 0 0; }
+            .right-sidebar { width: 100%; display: flex; flex-direction: column; gap: 0; }
 
-            .date-filter .pill { font-size: 12px; padding: 5px 12px; }
+            .section-header { padding: 20px 16px 12px; margin-bottom: 0; }
+            .section-header h2 { font-size: 18px; }
+            .date-filter .pill { font-size: 12px; padding: 6px 14px; border-radius: 18px; }
+            .date-filter .pill.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+            .table-wrap { background: transparent; border-radius: 0; box-shadow: none; margin: 0 12px; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+            .table-wrap table { min-width: 540px; }
+            .table-wrap th, .table-wrap td { padding: 12px 14px; font-size: 13px; }
+            .table-wrap th { background: #f5f6ff; font-size: 11px; }
+
+            /* Mobile cards for groups (overrides table on small screens) */
+            .mobile-group-cards { display: none; padding: 0 16px; gap: 10px; flex-direction: column; }
+            .mobile-group-card { background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 12px; }
+            .mobile-group-card .mg-avatar { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #fff; flex-shrink: 0; }
+            .mobile-group-card .mg-info { flex: 1; min-width: 0; }
+            .mobile-group-card .mg-name { font-size: 14px; font-weight: 600; }
+            .mobile-group-card .mg-meta { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+            .mobile-group-card .mg-right { text-align: right; flex-shrink: 0; }
+            .mobile-group-card .mg-badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 500; display: inline-block; }
+            .mobile-group-card .mg-badge.active { background: var(--brand-light); color: var(--brand); }
+            .mobile-group-card .mg-badge.upcoming { background: #fff7ed; color: #ea580c; }
+            .mobile-group-card .mg-badge.finished { background: #f3f4f6; color: #9ca3af; }
+            .mobile-group-card .mg-badge.expired { background: #fef2f2; color: #dc2626; }
+            .mobile-group-card .mg-count { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+            .mobile-group-card .mg-arrow { color: #d1d5db; font-size: 14px; margin-left: 4px; }
+
+            .widget { border-radius: 0; box-shadow: none; padding: 0 16px; }
+            .widget-header { padding: 16px 0; border-bottom: 1px solid var(--border); }
+            .widget-header h3 { font-size: 16px; }
+            .widget-body { padding: 8px 0; }
+            .widget + .widget { margin-top: 4px; }
+
+            .cal { padding: 12px 0; }
+            .cal-header .month { font-size: 14px; }
+
+            .quick-actions { gap: 8px; }
+            .qa-btn { padding: 14px 8px; border-radius: 12px; background: var(--bg); }
+            .qa-btn i { font-size: 22px; }
+            .qa-btn span { font-size: 11px; }
+
+            .notif-item { padding: 10px 0; }
 
             .mobile-only { display: flex; }
             .desktop-only { display: none; }
 
-            /* Mobile bottom nav */
-            .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border); display: flex; z-index: 100; padding: 6px 0; safe-area-inset-bottom: env(safe-area-inset-bottom); }
-            .bottom-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; color: var(--text-secondary); text-decoration: none; font-size: 10px; transition: color 0.2s; }
-            .bottom-nav a i { font-size: 18px; }
-            .bottom-nav a.active { color: var(--green); }
-            .bottom-nav a span { font-weight: 500; }
-            .content { padding-bottom: 80px; }
+            /* iOS-style bottom tab bar */
+            .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.06); display: flex; z-index: 100; padding: 4px 0; padding-bottom: max(4px, env(safe-area-inset-bottom)); }
+            .bottom-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 0 4px; color: var(--text-secondary); text-decoration: none; font-size: 10px; transition: color 0.15s; }
+            .bottom-nav a i { font-size: 22px; margin-bottom: 1px; }
+            .bottom-nav a.active { color: var(--brand); }
+            .bottom-nav a.active i { font-weight: 900; }
+            .bottom-nav a span { font-weight: 500; letter-spacing: 0; }
+            .content { padding-bottom: 90px; }
         }
 
         @media (max-width: 480px) {
-            .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
-            .stat-card { padding: 12px; }
-            .stat-card .icon { width: 32px; height: 32px; font-size: 13px; margin-bottom: 8px; }
+            .stats { grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 12px 16px; }
+            .stat-card { padding: 12px; border-radius: 12px; }
+            .stat-card .icon { width: 30px; height: 30px; font-size: 12px; margin-bottom: 8px; }
             .stat-card .value { font-size: 20px; }
-            .stat-card .label { font-size: 11px; }
-            .welcome h1 { font-size: 18px; }
+            .stat-card .label { font-size: 10px; }
+            .welcome { padding: 16px 12px 0; }
+            .welcome h1 { font-size: 20px; }
+            .section-header { padding: 16px 12px 10px; }
             .section-header h2 { font-size: 16px; }
-            .table-wrap table { min-width: 560px; }
+            .table-wrap { display: none; }
+            .mobile-group-cards { display: flex; }
+            .widget { padding: 0 12px; }
+            .quick-actions { gap: 6px; }
+            .qa-btn { padding: 12px 6px; }
+            .qa-btn i { font-size: 20px; }
+            .qa-btn span { font-size: 10px; }
+
+            .bottom-nav a i { font-size: 20px; }
+            .bottom-nav a { font-size: 9px; }
         }
     </style>
 </head>
@@ -292,21 +358,26 @@
     <div class="main">
         <!-- ===== TOPBAR ===== -->
         <header class="topbar">
-            <button class="mobile-only" onclick="toggleSidebar()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary);padding:4px;"><i class="fas fa-bars"></i></button>
             <div class="topbar-search">
                 <i class="fas fa-search"></i>
                 <input type="text" placeholder="Guruh yoki o'quvchi qidirish...">
             </div>
             <div class="topbar-actions">
-                <div class="topbar-notif desktop-only">
-                    <i class="far fa-bell"></i>
-                    <span class="badge"></span>
+                <div class="mob-left">
+                    <button class="hamburger mobile-only" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                    <span class="mob-title mobile-only">Dashboard</span>
                 </div>
-                <div class="topbar-profile">
-                    <div class="avatar">{{ employee.first_name|first }}{{ employee.last_name|first }}</div>
-                    <div class="info">
-                        <div class="name">{{ employee.first_name }} {{ employee.last_name }}</div>
-                        <div class="role">{{ employee.role.name|default:"O'qituvchi" }}</div>
+                <div class="mob-right">
+                    <div class="topbar-notif">
+                        <i class="far fa-bell"></i>
+                        <span class="badge"></span>
+                    </div>
+                    <div class="topbar-profile">
+                        <div class="avatar">{{ employee.first_name|first }}{{ employee.last_name|first }}</div>
+                        <div class="info">
+                            <div class="name">{{ employee.first_name }} {{ employee.last_name }}</div>
+                            <div class="role">{{ employee.role.name|default:"O'qituvchi" }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -349,7 +420,7 @@
                 <div class="content-main">
                     <!-- Section Header -->
                     <div class="section-header">
-                        <h2><i class="fas fa-users" style="color:var(--green);"></i> Guruhlarim</h2>
+                        <h2><i class="fas fa-users" style="color:var(--brand);"></i> Guruhlarim</h2>
                         <div class="date-filter">
                             <button class="pill" onclick="openPicker()"><i class="far fa-calendar-alt"></i> {% if selected_date_display %}{{ selected_date_display }}{% else %}Bugun{% endif %}</button>
                             <a href="{% url 'teacher_dashboard' %}" class="pill {% if not selected_day and not selected_date %}active{% endif %}"><i class="fas fa-times"></i> Filterni tozalash</a>
@@ -373,7 +444,7 @@
                                 <tr>
                                     <td>
                                         <div class="group-cell">
-                                            <div class="g-avatar" style="background:{% cycle '#00B14F' '#2563eb' '#ea580c' '#7c3aed' '#0891b2' %};">{{ g.group.name|slice:":2" }}</div>
+                                            <div class="g-avatar" style="background:{% cycle '#2001ff' '#2563eb' '#ea580c' '#7c3aed' '#0891b2' %};">{{ g.group.name|slice:":2" }}</div>
                                             <div class="g-info">
                                                 <div class="g-name">{{ g.group.name }}</div>
                                                 <div class="g-subject">{{ g.group.course.name }}</div>
@@ -414,6 +485,35 @@
                             </tbody>
                         </table>
                     </div>
+                    <!-- Mobile group cards -->
+                    <div class="mobile-group-cards">
+                        {% for g in groups %}
+                        <a href="{% if g.status == 'expired' %}#{% else %}{% url 'teacher_group_detail' g.group.pk %}{% endif %}" class="mobile-group-card" style="text-decoration:none;color:inherit;">
+                            <div class="mg-avatar" style="background:{% cycle '#2001ff' '#2563eb' '#ea580c' '#7c3aed' '#0891b2' %};">{{ g.group.name|slice:":2" }}</div>
+                            <div class="mg-info">
+                                <div class="mg-name">{{ g.group.name }}</div>
+                                <div class="mg-meta">{{ g.group.course.name }} · {{ g.student_count }} ta o'quvchi</div>
+                            </div>
+                            <div class="mg-right">
+                                {% if g.status == "active" %}
+                                <span class="mg-badge active">Dars</span>
+                                {% elif g.status == "upcoming" %}
+                                <span class="mg-badge upcoming">Kutilmoqda</span>
+                                {% elif g.status == "finished" %}
+                                <span class="mg-badge finished">O'tdi</span>
+                                {% elif g.status == "expired" %}
+                                <span class="mg-badge expired" style="background:#fef2f2;color:#dc2626;">Tugagan</span>
+                                {% else %}
+                                <span class="mg-badge finished">Kutilmoqda</span>
+                                {% endif %}
+                                <div class="mg-count">{{ g.lesson_display|default:""|slice:":5" }}</div>
+                            </div>
+                            {% if g.status != "expired" %}<span class="mg-arrow"><i class="fas fa-chevron-right"></i></span>{% endif %}
+                        </a>
+                        {% empty %}
+                        <div style="text-align:center;padding:30px;color:var(--text-secondary);font-size:14px;">Guruhlar topilmadi</div>
+                        {% endfor %}
+                    </div>
                 </div>
 
                 <!-- ===== RIGHT SIDEBAR ===== -->
@@ -421,7 +521,7 @@
                     <!-- Today's Lessons -->
                     <div class="widget">
                         <div class="widget-header">
-                            <h3><i class="far fa-clock" style="color:var(--green);"></i> Bugungi darslar</h3>
+                            <h3><i class="far fa-clock" style="color:var(--brand);"></i> Bugungi darslar</h3>
                             <a href="#" class="see-all">Barchasi</a>
                         </div>
                         <div class="widget-body">
@@ -448,7 +548,7 @@
                     <!-- Calendar -->
                     <div class="widget">
                         <div class="widget-header">
-                            <h3><i class="far fa-calendar-alt" style="color:var(--green);"></i> Taqvim</h3>
+                            <h3><i class="far fa-calendar-alt" style="color:var(--brand);"></i> Taqvim</h3>
                         </div>
                         <div class="cal" id="calendarWidget"></div>
                     </div>
@@ -456,12 +556,12 @@
                     <!-- Quick Actions -->
                     <div class="widget">
                         <div class="widget-header">
-                            <h3><i class="fas fa-bolt" style="color:var(--green);"></i> Tezkor amallar</h3>
+                            <h3><i class="fas fa-bolt" style="color:var(--brand);"></i> Tezkor amallar</h3>
                         </div>
                         <div class="widget-body">
                             <div class="quick-actions">
                                 <a href="#" class="qa-btn">
-                                    <i class="fas fa-clipboard-check" style="color:var(--green);"></i>
+                                    <i class="fas fa-clipboard-check" style="color:var(--brand);"></i>
                                     <span>Davomat olish</span>
                                 </a>
                                 <a href="#" class="qa-btn">
@@ -483,7 +583,7 @@
                     <!-- Notifications -->
                     <div class="widget">
                         <div class="widget-header">
-                            <h3><i class="far fa-bell" style="color:var(--green);"></i> Bildirishnomalar</h3>
+                            <h3><i class="far fa-bell" style="color:var(--brand);"></i> Bildirishnomalar</h3>
                             <a href="#" class="see-all">Barchasi</a>
                         </div>
                         <div class="widget-body">
