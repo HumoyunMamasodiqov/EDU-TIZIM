@@ -1,1 +1,14 @@
-# Custom admin panel is handled via views - no Django admin used
+from django.contrib import admin
+from .models import Course, MarketingSurvey, Group, Student, LessonTime, StudentLog, Branch, Room, Role, Position, Employee
+
+admin.site.register(Course)
+admin.site.register(MarketingSurvey)
+admin.site.register(Group)
+admin.site.register(Student)
+admin.site.register(LessonTime)
+admin.site.register(StudentLog)
+admin.site.register(Branch)
+admin.site.register(Room)
+admin.site.register(Role)
+admin.site.register(Position)
+admin.site.register(Employee)
