@@ -78,10 +78,15 @@ def teacher_dashboard(request):
 
     day_filter = request.GET.get("day", "")
     date_filter = request.GET.get("date", "")
+    show_all = request.GET.get("all", "")
 
-    all_teacher_groups = Group.objects.filter(
-        teacher=employee, status__in=["aktiv", "kutilyotgan"]
-    ).select_related("course", "room").prefetch_related("lesson_times", "students").annotate(
+    base_groups = Group.objects.filter(status__in=["aktiv", "kutilyotgan"])
+    if show_all:
+        all_teacher_groups = base_groups
+    else:
+        all_teacher_groups = base_groups.filter(teacher=employee)
+
+    all_teacher_groups = all_teacher_groups.select_related("course", "room").prefetch_related("lesson_times", "students").annotate(
         student_count=Count("students")
     )
 
@@ -173,7 +178,7 @@ def teacher_dashboard(request):
 
     total_groups = all_teacher_groups.count()
 
-    return render(request, "teacher/dashboard.html", {
+    return render(request, "teacher/my_groups.html" if show_all else "teacher/dashboard.html", {
         "groups": sorted_groups,
         "employee": employee,
         "selected_day": day_filter,
@@ -184,6 +189,7 @@ def teacher_dashboard(request):
         "active_count": active_count,
         "total_students": total_students,
         "today_display": today_display,
+        "show_all": show_all,
     })
 
 
