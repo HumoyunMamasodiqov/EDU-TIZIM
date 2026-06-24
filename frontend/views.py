@@ -78,15 +78,10 @@ def teacher_dashboard(request):
 
     day_filter = request.GET.get("day", "")
     date_filter = request.GET.get("date", "")
-    show_all = request.GET.get("all", "")
 
-    base_groups = Group.objects.filter(status__in=["aktiv", "kutilyotgan"])
-    if show_all:
-        all_teacher_groups = base_groups
-    else:
-        all_teacher_groups = base_groups.filter(teacher=employee)
-
-    all_teacher_groups = all_teacher_groups.select_related("course", "room").prefetch_related("lesson_times", "students").annotate(
+    all_teacher_groups = Group.objects.filter(
+        teacher=employee, status__in=["aktiv", "kutilyotgan"]
+    ).select_related("course", "room").prefetch_related("lesson_times", "students").annotate(
         student_count=Count("students")
     )
 
@@ -178,7 +173,7 @@ def teacher_dashboard(request):
 
     total_groups = all_teacher_groups.count()
 
-    return render(request, "teacher/my_groups.html" if show_all else "teacher/dashboard.html", {
+    return render(request, "teacher/dashboard.html", {
         "groups": sorted_groups,
         "employee": employee,
         "selected_day": day_filter,
@@ -189,7 +184,61 @@ def teacher_dashboard(request):
         "active_count": active_count,
         "total_students": total_students,
         "today_display": today_display,
-        "show_all": show_all,
+    })
+
+
+@login_required(login_url="login")
+def teacher_my_groups(request):
+    try:
+        employee = request.user.employee_profile
+        if not employee.role or employee.role.name != "O'qituvchi":
+            messages.error(request, "Siz o'qituvchi emassiz!")
+            return redirect("login")
+    except:
+        messages.error(request, "Siz o'qituvchi emassiz!")
+        return redirect("login")
+
+    groups = Group.objects.filter(
+        teacher=employee, status__in=["aktiv", "kutilyotgan"]
+    ).select_related("course", "room").prefetch_related(
+        "lesson_times", "students"
+    ).annotate(student_count=Count("students")).distinct().order_by("name")
+
+    from datetime import datetime, date
+    now = datetime.now()
+    current_time = now.time()
+    current_weekday = now.weekday()
+    weekday_map = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+    today_uz = weekday_map[current_weekday]
+
+    group_list = []
+    for g in groups:
+        if g.is_date_overdue():
+            group_list.append({"group":g,"student_count":g.students.count(),"lesson_display":"","status":"expired","nearest_time":None})
+            continue
+        lesson_times = list(g.lesson_times.all())
+        status = "kutilmoqda"
+        lesson_display = ""
+        nearest_time = None
+        for lt in lesson_times:
+            days_list = [d.strip().lower() for d in lt.days.split(",") if d.strip()]
+            if nearest_time is None or (lt.start_time and lt.start_time < nearest_time):
+                nearest_time = lt.start_time
+            if today_uz in days_list:
+                if lt.start_time <= current_time <= lt.end_time:
+                    status = "active"
+                elif lt.end_time < current_time:
+                    if status != "active":
+                        status = "finished"
+                elif lt.start_time > current_time:
+                    if status not in ("active","finished"):
+                        status = "upcoming"
+            lesson_display = f"{lt.get_days_display()} {lt.start_time.strftime('%H:%M')}-{lt.end_time.strftime('%H:%M')}"
+        group_list.append({"group":g,"student_count":g.students.count(),"lesson_display":lesson_display,"status":status,"nearest_time":nearest_time})
+
+    return render(request, "teacher/my_groups.html", {
+        "groups": group_list,
+        "employee": employee,
     })
 
 
