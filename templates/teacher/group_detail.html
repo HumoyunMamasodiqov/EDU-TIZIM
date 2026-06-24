@@ -51,6 +51,14 @@
         @media (max-width: 480px) {
             .t-content { padding: 16px; }
         }
+        @media (min-width: 768px) {
+            body { background: linear-gradient(135deg, #f0f2ff 0%, #f5f7fc 100%); padding: 30px; }
+            .t-app { max-width: 900px; border-radius: 24px; min-height: auto; box-shadow: 0 20px 60px rgba(32, 1, 255, 0.08); overflow: hidden; }
+            .t-header { padding: 18px 28px; }
+            .t-content { padding: 28px; }
+            .t-student-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+            .t-info-grid { grid-template-columns: 1fr 1fr 1fr; }
+        }
     </style>
 </head>
 <body>

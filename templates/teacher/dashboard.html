@@ -452,6 +452,47 @@
                 font-size: 16px;
             }
         }
+
+        /* ===== DESKTOP ===== */
+        @media (min-width: 768px) {
+            body {
+                background: linear-gradient(135deg, #f0f2ff 0%, #f5f7fc 100%);
+                padding: 30px;
+            }
+            .t-app {
+                max-width: 900px;
+                border-radius: 24px;
+                min-height: auto;
+                box-shadow: 0 20px 60px rgba(32, 1, 255, 0.08);
+                overflow: hidden;
+            }
+            .t-header {
+                padding: 18px 28px;
+            }
+            .t-h-title {
+                font-size: 20px;
+            }
+            .t-content {
+                padding: 28px 28px 80px;
+            }
+            .t-section h2 {
+                font-size: 24px;
+            }
+            .t-groups {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px;
+            }
+            .t-groups > div {
+                margin-bottom: 0;
+            }
+            .t-fab {
+                bottom: 40px;
+            }
+            .t-picker {
+                max-width: 480px;
+            }
+        }
     </style>
 </head>
 <body>
