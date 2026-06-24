@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>O'qituvchi paneli</title>
+    <link rel="stylesheet" href="{% static 'fontawesomefree/css/all.min.css' %}">
+    <style>
+        /* ===== GLOBAL ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f5f7fc;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 0;
+        }
+        .t-app {
+            max-width: 480px;
+            width: 100%;
+            min-height: 100vh;
+            background: #ffffff;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== HEADER ===== */
+        .t-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #2001ff;
+            color: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .t-h-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .t-h-btn {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 6px;
+            transition: opacity 0.2s;
+        }
+        .t-h-btn:hover {
+            opacity: 0.7;
+        }
+        .t-h-title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .t-h-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .t-h-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+        }
+
+        /* ===== CONTENT ===== */
+        .t-content {
+            flex: 1;
+            padding: 20px 20px 100px;
+            overflow-y: auto;
+        }
+
+        /* ===== MESSAGES ===== */
+        .t-msgs {
+            margin-bottom: 16px;
+        }
+        .t-msg {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 6px;
+            background: #f0f4ff;
+            color: #2001ff;
+            border-left: 4px solid #2001ff;
+        }
+        .t-msg.ok {
+            background: #e8f5e9;
+            color: #1e7e34;
+            border-left-color: #1e7e34;
+        }
+        .t-msg.err {
+            background: #ffebee;
+            color: #b71c1c;
+            border-left-color: #b71c1c;
+        }
+
+        /* ===== SECTION ===== */
+        .t-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .t-section h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+        .t-section span {
+            font-size: 14px;
+            color: #2001ff;
+            background: #eef1ff;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        /* ===== GROUPS ===== */
+        .t-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .t-groups > div {
+            background: #fff;
+            border-radius: 16px;
+
+            border: 1px solid #eef1ff;
+            transition: box-shadow 0.2s;
+        }
+        .t-groups > div:hover {
+            box-shadow: 0 6px 24px rgba(32, 1, 255, 0.12);
+        }
+        .t-group {
+            display: block;
+            padding: 16px 18px 12px;
+            border-radius: 14px 14px 0 0;
+            text-decoration: none;
+            color: inherit;
+            background: #f4f4f4;
+            border-bottom: 1px solid #eef1ff;
+        }
+        .t-group .t-g-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .t-g-name {
+            font-weight: 700;
+            font-size: 17px;
+            color: #1a1a2e;
+        }
+        .t-g-body {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 20px;
+        }
+        .t-g-row {
+            font-size: 14px;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .t-g-row i {
+            color: #2001ff;
+            width: 18px;
+            text-align: center;
+        }
+        .t-g-row .v {
+            color: #1a1a2e;
+            font-weight: 500;
+        }
+        .t-g-count {
+            padding: 8px 18px 2px;
+            font-size: 13px;
+            color: #666;
+        }
+        .t-g-count i {
+            color: #2001ff;
+            margin-right: 6px;
+        }
+
+        .t-group-expired {
+            display: block;
+            padding: 16px 18px 12px;
+            border-radius: 14px 14px 0 0;
+            text-decoration: none;
+            color: inherit;
+            background: #f9f9fb;
+            border-bottom: 1px solid #eef1ff;
+            opacity: 0.5;
+            cursor: default;
+       
+        }
+        .t-group-expired .t-g-name {
+            color: #999;
+        }
+        .t-g-expired {
+            font-size: 11px;
+            font-weight: 700;
+            color: #ff6b6b;
+            background: #fff0f0;
+            padding: 3px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .t-g-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+            flex-shrink: 0;
+        }
+        .t-g-badge.live { background: #e8f5e9; color: #1e7e34; }
+        .t-g-badge.wait { background: #fff3e0; color: #e65100; }
+        .t-g-badge.done { background: #f1f5f9; color: #94a3b8; }
+      
+
+        /* ===== EMPTY ===== */
+        .t-empty {
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+        .t-empty-icon {
+            font-size: 56px;
+            color: #2001ff;
+            opacity: 0.35;
+            margin-bottom: 16px;
+        }
+        .t-empty h3 {
+            font-size: 18px;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+        .t-empty p {
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* ===== FAB ===== */
+       
+
+        /* ===== OVERLAY ===== */
+        .t-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .t-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* ===== PICKER ===== */
+        .t-picker {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 92%;
+            max-width: 440px;
+            background: #fff;
+            border-radius: 24px;
+            z-index: 50;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            padding-bottom: 20px;
+            opacity: 0;
+        }
+        .t-picker.open {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        .t-picker-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .t-picker-cancel {
+            background: none;
+            border: none;
+            font-size: 15px;
+            color: #888;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .t-picker-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #1a1a2e;
+        }
+        .t-picker-done {
+            background: #2001ff;
+            border: none;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 6px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .t-picker-done:hover {
+            opacity: 0.85;
+        }
+        .t-picker-tabs {
+            display: flex;
+            gap: 6px;
+            padding: 12px 20px 4px;
+        }
+        .t-picker-tab {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background: #f9f9fb;
+            font-size: 13px;
+            font-weight: 600;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .t-picker-tab.active {
+            background: #2001ff;
+            color: #fff;
+            border-color: #2001ff;
+        }
+        .t-picker-all {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 20px 4px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #888;
+            cursor: pointer;
+            user-select: none;
+        }
+        .t-picker-all input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #2001ff;
+            cursor: pointer;
+        }
+        .t-picker-body {
+            display: flex;
+            height: 220px;
+            overflow: hidden;
+            position: relative;
+            padding: 0 8px;
+        }
+        .t-picker-cols {
+            display: flex;
+            width: 100%;
+            gap: 4px;
+        }
+        .t-picker-col {
+            flex: 1;
+            min-width: 0;
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+            padding: 80px 0;
+            scrollbar-width: none;
+        }
+        #colsDate .t-picker-col:first-child {
+            max-width: 70px;
+        }
+        #colsDay .t-picker-col {
+            max-width: 180px;
+            margin: 0 auto;
+        }
+        .t-picker-col::-webkit-scrollbar {
+            display: none;
+        }
+        .t-picker-item {
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            color: #888;
+            scroll-snap-align: center;
+            transition: color 0.15s, font-weight 0.15s;
+            cursor: default;
+            font-weight: 400;
+        }
+        .t-picker-item.selected {
+            color: #1a1a2e;
+            font-weight: 600;
+            font-size: 19px;
+        }
+        .t-picker-highlight {
+            position: absolute;
+            left: 8%;
+            right: 8%;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 38px;
+            background: #f0f4ff;
+            border-radius: 12px;
+            pointer-events: none;
+            opacity: 0.5;
+            border: 1px solid #e0e8ff;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            .t-header {
+                padding: 14px 16px;
+            }
+            .t-content {
+                padding: 16px 16px 100px;
+            }
+            .t-g-name {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="t-app">
+        <!-- Header -->
+        <header class="t-header">
+            <div class="t-h-left">
+                <button class="t-h-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
+                <span class="t-h-title">O'qituvchi paneli</span>
+            </div>
+            <div class="t-h-right">
+                <button class="t-h-btn" id="calendarBtn"><i class="far fa-calendar-alt"></i></button>
+                <button class="t-h-btn"><i class="far fa-bell"></i></button>
+                <button class="t-h-btn"><i class="fas fa-sliders-h"></i></button>
+                <div class="t-h-avatar">{{ employee.first_name|first|upper }}{{ employee.last_name|first|upper }}</div>
+            </div>
+        </header>
+
+        <div class="t-content">
+            {% if messages %}
+            <div class="t-msgs">
+                {% for message in messages %}
+                <div class="t-msg {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}err{% endif %}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Section -->
+            <div class="t-section">
+                <h2>{% if selected_date_display %}{{ selected_date_display }}{% elif selected_day == 'dushanba' %}Dushanba{% elif selected_day == 'seshanba' %}Seshanba{% elif selected_day == 'chorshanba' %}Chorshanba{% elif selected_day == 'payshanba' %}Payshanba{% elif selected_day == 'juma' %}Juma{% elif selected_day == 'shanba' %}Shanba{% elif selected_day == 'yakshanba' %}Yakshanba{% else %}Barcha guruhlar{% endif %}</h2>
+                <span>{{ groups|length }} ta</span>
+            </div>
+
+            <!-- Groups -->
+            {% if groups %}
+            <div class="t-groups">
+                {% for item in groups %}
+                <div>
+                    {% if item.status == "expired" %}
+                    <div class="t-group t-group-expired">
+                        <div class="t-g-top">
+                            <div class="t-g-name">{{ item.group.name }}</div>
+                            <span class="t-g-expired">Muddati tugagan</span>
+                        </div>
+                        <div class="t-g-body">
+                            <div class="t-g-row"><span class="v">{{ item.group.course.name }}</span></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'teacher_group_detail' item.group.pk %}" class="t-group">
+                        <div class="t-g-top">
+                            <div class="t-g-name">{{ item.group.name }}</div>
+                            {% if item.status == "active" %}
+                            <span class="t-g-badge live">Dars bo'lyapti</span>
+                            {% elif item.status == "upcoming" %}
+                            <span class="t-g-badge wait">Kutilyapti</span>
+                            {% elif item.status == "finished" %}
+                            <span class="t-g-badge done">O'tib ketdi</span>
+                            {% endif %}
+                        </div>
+                        <div class="t-g-body">
+                            <div class="t-g-row"><span class="v">{{ item.group.course.name }}</span></div>
+                            <div class="t-g-row"><i class="far fa-clock"></i> <span class="v">{{ item.lesson_display }}</span></div>
+                        </div>
+                    </a>
+                   
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="t-empty">
+                <div class="t-empty-icon"><i class="fas fa-calendar-times"></i></div>
+                <h3>Guruhlar topilmadi</h3>
+                <p>{% if selected_day or selected_date %}Bu kun uchun darslar mavjud emas{% else %}Sizga biriktirilgan guruhlar mavjud emas{% endif %}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- FAB -->
+       
+        <!-- Calendar Overlay -->
+        <div class="t-overlay" id="overlay"></div>
+
+        <!-- Date Picker -->
+        <div class="t-picker" id="picker">
+            <div class="t-picker-head">
+                <button class="t-picker-cancel" id="cancelBtn">Bekor qilish</button>
+                <span class="t-picker-title">Sanani tanlang</span>
+                <button class="t-picker-done" id="doneBtn">Tanlash</button>
+            </div>
+            <div class="t-picker-tabs">
+                <button class="t-picker-tab active" data-mode="date">Kun bo'yicha</button>
+                <button class="t-picker-tab" data-mode="day">Hafta kuni</button>
+            </div>
+            <div class="t-picker-body" id="pickerBody">
+                <div class="t-picker-highlight" id="pickerHL"></div>
+                <div class="t-picker-cols" id="colsDate">
+                    <div class="t-picker-col" id="colDayNum"></div>
+                    <div class="t-picker-col" id="colMonth"></div>
+                    <div class="t-picker-col" id="colYear"></div>
+                </div>
+                <div class="t-picker-cols" id="colsDay" style="display:none">
+                    <div class="t-picker-col" id="colDayName"></div>
+                </div>
+            </div>
+            <label class="t-picker-all">
+                <input type="checkbox" id="showAll"> Barcha guruhlarni ko'rish
+            </label>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        var now = new Date();
+        var selDay = (now.getDay() + 6) % 7;
+        var selMonth = now.getMonth();
+        var selYear = now.getFullYear();
+
+        var months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+        var dayNamesUz = ['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba','Yakshanba'];
+        var dayNamesUrl = ['dushanba','seshanba','chorshanba','payshanba','juma','shanba','yakshanba'];
+
+        function buildCol(el, items, sel) {
+            el.innerHTML = '';
+            items.forEach(function(v, i) {
+                var div = document.createElement('div');
+                div.className = 't-picker-item' + (i === sel ? ' selected' : '');
+                div.textContent = v;
+                div.dataset.index = i;
+                el.appendChild(div);
+            });
+            if (sel >= 0) {
+                el.scrollTop = sel * 38 + 80 - el.clientHeight/2 + 18;
+            }
+        }
+
+        var dayNums = [];
+        for (var i = 1; i <= 31; i++) dayNums.push(i < 10 ? '0' + i : '' + i);
+        var years = [];
+        for (var i = 2020; i <= 2035; i++) years.push('' + i);
+
+        var colDayName = document.getElementById('colDayName');
+        var colDayNum = document.getElementById('colDayNum');
+        var colMonth = document.getElementById('colMonth');
+        var colYear = document.getElementById('colYear');
+
+        var selDayName = selDay;
+        var selDayNum = now.getDate() - 1;
+
+        buildCol(colDayName, dayNamesUz, selDayName);
+        buildCol(colDayNum, dayNums, selDayNum);
+        buildCol(colMonth, months, selMonth);
+        buildCol(colYear, years, selYear - 2020);
+
+        function setupCol(el, cb) {
+            var ticking = false;
+            el.addEventListener('scroll', function() {
+                if (!ticking) {
+                    window.requestAnimationFrame(function() {
+                        var items = el.querySelectorAll('.t-picker-item');
+                        var center = el.scrollTop + el.clientHeight / 2;
+                        var closest = 0;
+                        var closestDist = Infinity;
+                        items.forEach(function(item, i) {
+                            var rect = item.getBoundingClientRect();
+                            var itemCenter = rect.top + rect.height / 2;
+                            var elRect = el.getBoundingClientRect();
+                            var elCenter = elRect.top + elRect.height / 2;
+                            var dist = Math.abs(itemCenter - elCenter);
+                            if (dist < closestDist) {
+                                closestDist = dist;
+                                closest = i;
+                            }
+                        });
+                        items.forEach(function(item) { item.classList.remove('selected'); });
+                        if (items[closest]) {
+                            items[closest].classList.add('selected');
+                            cb(closest);
+                        }
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+        }
+
+        setupCol(colDayName, function(i) { selDayName = i; });
+        setupCol(colDayNum, function(i) { selDayNum = i + 1; });
+        setupCol(colMonth, function(i) { selMonth = i; });
+        setupCol(colYear, function(i) { selYear = i + 2020; });
+
+        var activeMode = 'date';
+        var tabs = document.querySelectorAll('.t-picker-tab');
+        tabs.forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                tabs.forEach(function(t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                activeMode = tab.dataset.mode;
+                document.getElementById('colsDate').style.display = activeMode === 'date' ? 'flex' : 'none';
+                document.getElementById('colsDay').style.display = activeMode === 'day' ? 'flex' : 'none';
+            });
+        });
+
+        var overlay = document.getElementById('overlay');
+        var picker = document.getElementById('picker');
+        var calendarBtn = document.getElementById('calendarBtn');
+
+        function openPicker() {
+            overlay.classList.add('open');
+            picker.classList.add('open');
+        }
+
+        function closePicker() {
+            overlay.classList.remove('open');
+            picker.classList.remove('open');
+        }
+
+        calendarBtn.addEventListener('click', openPicker);
+
+        document.getElementById('cancelBtn').addEventListener('click', closePicker);
+        overlay.addEventListener('click', closePicker);
+
+        document.getElementById('doneBtn').addEventListener('click', function() {
+            if (document.getElementById('showAll').checked) {
+                window.location.href = '?';
+                return;
+            }
+            if (activeMode === 'day') {
+                window.location.href = '?day=' + dayNamesUrl[selDayName];
+            } else {
+                var dateStr = selYear + '-' + (selMonth + 1 < 10 ? '0' : '') + (selMonth + 1) + '-' + (selDayNum < 10 ? '0' : '') + selDayNum;
+                window.location.href = '?date=' + dateStr;
+            }
+        });
+
+        document.getElementById('fabBtn').addEventListener('click', function() {
+            alert('Yangi guruh qo\'shish');
+        });
+
+        document.querySelectorAll('.t-msg').forEach(function(el) {
+            setTimeout(function() { el.remove(); }, 4000);
+        });
+    })();
+    </script>
+</body>
+</html>

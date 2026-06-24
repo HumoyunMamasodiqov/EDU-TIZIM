@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ group.name }} - O'qituvchi</title>
+    <link rel="stylesheet" href="{% static 'fontawesomefree/css/all.min.css' %}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: #f5f7fc; display: flex; justify-content: center; min-height: 100vh; }
+        .t-app { max-width: 480px; width: 100%; min-height: 100vh; background: #fff; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+        .t-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #2001ff; color: #fff; position: sticky; top: 0; z-index: 20; border-bottom: 1px solid rgba(255,255,255,0.15); }
+        .t-header-left { display: flex; align-items: center; gap: 12px; }
+        .t-header-back { color: #fff; font-size: 18px; text-decoration: none; background: rgba(255,255,255,0.15); width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .t-header-title { font-size: 17px; font-weight: 600; }
+        .t-header-right { display: flex; align-items: center; gap: 8px; }
+        .t-header-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #fff; border: 2px solid rgba(255,255,255,0.4); }
+        .t-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+        .t-info { background: #fff; border-radius: 16px; padding: 18px; border: 1px solid #eef1ff; }
+        .t-info-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #eef1ff; }
+        .t-info-head i { color: #2001ff; font-size: 16px; }
+        .t-info-head h3 { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+        .t-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .t-info-item { display: flex; flex-direction: column; gap: 2px; }
+        .t-info-item .lbl { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+        .t-info-item .val { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+        .t-info-item.full { grid-column: 1 / -1; }
+        .t-time-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .t-time-badge { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: #f0f4ff; border-radius: 8px; font-size: 13px; font-weight: 600; color: #2001ff; }
+        .t-time-badge i { font-size: 12px; }
+        .t-students-head { display: flex; align-items: center; justify-content: space-between; }
+        .t-students-head h3 { font-size: 16px; font-weight: 700; color: #1a1a2e; display: flex; align-items: center; gap: 6px; }
+        .t-students-head h3 i { color: #2001ff; }
+        .t-students-head .count { font-size: 13px; color: #2001ff; background: #eef1ff; padding: 3px 14px; border-radius: 20px; font-weight: 600; }
+        .t-student-list { display: flex; flex-direction: column; gap: 10px; }
+        .t-student { background: #fff; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; border: 1px solid #eef1ff; }
+        .t-student-av { width: 38px; height: 38px; border-radius: 12px; background: #f0f4ff; color: #2001ff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+        .t-student-info { flex: 1; min-width: 0; }
+        .t-student-name { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+        .t-student-phone { font-size: 13px; color: #888; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+        .t-student-phone i { font-size: 11px; }
+        .t-student-tag { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .t-student-tag.active { background: #e8f5e9; color: #1e7e34; }
+        .t-student-tag.frozen { background: #fff3e0; color: #e65100; }
+        .t-tg-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: #2001ff; color: #fff; border-radius: 12px; font-size: 15px; font-weight: 600; text-decoration: none; }
+        .t-empty { text-align: center; padding: 40px 20px; }
+        .t-empty-icon { font-size: 48px; color: #2001ff; opacity: 0.3; margin-bottom: 12px; }
+        .t-empty h3 { font-size: 17px; color: #1a1a2e; margin-bottom: 4px; }
+        .t-empty p { font-size: 14px; color: #888; }
+        @media (max-width: 480px) {
+            .t-content { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="t-app">
+        <header class="t-header">
+            <div class="t-header-left">
+                <a href="{% url 'teacher_dashboard' %}" class="t-header-back"><i class="fas fa-chevron-left"></i></a>
+                <div class="t-header-title">{{ group.name }}</div>
+            </div>
+            <div class="t-header-right">
+                <div class="t-header-avatar">{{ employee.first_name|first|upper }}{{ employee.last_name|first|upper }}</div>
+            </div>
+        </header>
+        <div class="t-content">
+            <div class="t-info">
+                <div class="t-info-head">
+                    <i class="fas fa-info-circle"></i>
+                    <h3>Guruh ma'lumotlari</h3>
+                </div>
+                <div class="t-info-grid">
+                    <div class="t-info-item">
+                        <span class="lbl">Kurs</span>
+                        <span class="val">{{ group.course.name }}</span>
+                    </div>
+                    <div class="t-info-item">
+                        <span class="lbl">Xona</span>
+                        <span class="val">{{ group.room.name|default:"-" }}</span>
+                    </div>
+                    <div class="t-info-item">
+                        <span class="lbl">Ta'lim turi</span>
+                        <span class="val">{{ group.get_education_type_display }}</span>
+                    </div>
+                    <div class="t-info-item">
+                        <span class="lbl">Holati</span>
+                        <span class="val">{{ group.get_status_display }}</span>
+                    </div>
+                    <div class="t-info-item">
+                        <span class="lbl">Boshlanish</span>
+                        <span class="val">{{ group.start_date|date:"d.m.Y"|default:"-" }}</span>
+                    </div>
+                    <div class="t-info-item">
+                        <span class="lbl">Tugash</span>
+                        <span class="val">{{ group.end_date|date:"d.m.Y"|default:"-" }}</span>
+                    </div>
+                    {% if group.lesson_times.all %}
+                    <div class="t-info-item full">
+                        <span class="lbl">Dars vaqtlari</span>
+                        <div class="t-time-badges">
+                            {% for lt in group.lesson_times.all %}
+                            <span class="t-time-badge"><i class="far fa-clock"></i> {{ lt.get_days_display }} {{ lt.start_time|time:"H:i" }}—{{ lt.end_time|time:"H:i" }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="t-students-head">
+                <h3><i class="fas fa-users"></i> O'quvchilar</h3>
+                <span class="count">{{ students.count }} ta</span>
+            </div>
+            {% if students %}
+            <div class="t-student-list">
+                {% for student in students %}
+                <div class="t-student">
+                    <div class="t-student-av">{{ student.first_name|first|upper }}{{ student.last_name|first|upper }}</div>
+                    <div class="t-student-info">
+                        <div class="t-student-name">{{ student.first_name }} {{ student.last_name }}</div>
+                        <div class="t-student-phone"><i class="fas fa-phone"></i> +998 {{ student.phone }}</div>
+                    </div>
+                    {% if student.is_frozen %}
+                    <span class="t-student-tag frozen"><i class="fas fa-snowflake"></i> Muzlatilgan</span>
+                    {% else %}
+                    <span class="t-student-tag active"><i class="fas fa-check-circle"></i> Faol</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="t-empty">
+                <div class="t-empty-icon"><i class="fas fa-user-graduate"></i></div>
+                <h3>O'quvchilar yo'q</h3>
+                <p>Bu guruhda hali o'quvchilar mavjud emas</p>
+            </div>
+            {% endif %}
+            {% if group.telegram_link %}
+            <a href="{{ group.telegram_link }}" target="_blank" class="t-tg-btn"><i class="fab fa-telegram-plane"></i> Telegram guruh</a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

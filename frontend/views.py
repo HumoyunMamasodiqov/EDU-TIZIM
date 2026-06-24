@@ -11,6 +11,11 @@ from .forms import LoginForm, CourseForm, GroupForm, StudentCreateForm, StudentE
 
 def login_view(request):
     if request.user.is_authenticated:
+        try:
+            if request.user.employee_profile.role and request.user.employee_profile.role.name == "O'qituvchi":
+                return redirect("teacher_dashboard")
+        except:
+            pass
         return redirect("dashboard")
     form = LoginForm()
     if request.method == "POST":
@@ -23,6 +28,11 @@ def login_view(request):
             )
             if user:
                 login(request, user)
+                try:
+                    if user.employee_profile.role and user.employee_profile.role.name == "O'qituvchi":
+                        return redirect("teacher_dashboard")
+                except:
+                    pass
                 return redirect("dashboard")
             messages.error(request, "Telefon raqam yoki parol noto'g'ri")
     return render(request, "login.html", {"form": form})
@@ -34,7 +44,183 @@ def logout_view(request):
 
 
 @login_required(login_url="login")
+def teacher_dashboard(request):
+    try:
+        employee = request.user.employee_profile
+        if not employee.role or employee.role.name != "O'qituvchi":
+            messages.error(request, "Siz o'qituvchi emassiz!")
+            return redirect("login")
+    except:
+        messages.error(request, "Siz o'qituvchi emassiz!")
+        return redirect("login")
+
+    from datetime import datetime, time, date
+    now = datetime.now()
+    current_time = now.time()
+    current_weekday = now.weekday()
+    weekday_map = {
+        0: "dushanba", 1: "seshanba", 2: "chorshanba",
+        3: "payshanba", 4: "juma", 5: "shanba", 6: "yakshanba"
+    }
+    today_uz = weekday_map[current_weekday]
+
+    today_date = date.today()
+    weekdays_uz = {
+        0: "Dushanba", 1: "Seshanba", 2: "Chorshanba",
+        3: "Payshanba", 4: "Juma", 5: "Shanba", 6: "Yakshanba"
+    }
+    months_uz = {
+        1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel",
+        5: "May", 6: "Iyun", 7: "Iyul", 8: "Avgust",
+        9: "Sentabr", 10: "Oktabr", 11: "Noyabr", 12: "Dekabr"
+    }
+    today_display = f"{weekdays_uz[today_date.weekday()]}, {today_date.day} {months_uz[today_date.month]} {today_date.year}"
+
+    day_filter = request.GET.get("day", "")
+    date_filter = request.GET.get("date", "")
+
+    all_teacher_groups = Group.objects.filter(
+        teacher=employee, status__in=["aktiv", "kutilyotgan"]
+    ).select_related("course", "room").prefetch_related("lesson_times", "students").annotate(
+        student_count=Count("students")
+    )
+
+    selected_date_display = ""
+    if date_filter:
+        try:
+            from datetime import datetime as dt
+            parsed = dt.strptime(date_filter, "%Y-%m-%d")
+            wd = weekday_map[parsed.weekday()]
+            groups = all_teacher_groups.filter(lesson_times__days__contains=wd)
+            day_filter = wd
+            selected_date_display = f"{weekdays_uz[parsed.weekday()]}, {parsed.day} {months_uz[parsed.month]} {parsed.year}"
+        except:
+            groups = all_teacher_groups
+    elif day_filter:
+        groups = all_teacher_groups.filter(lesson_times__days__contains=day_filter)
+    else:
+        groups = all_teacher_groups
+
+    groups = groups.distinct().order_by("name")
+
+    today_count = 0
+    active_count = 0
+    total_students = 0
+
+    group_list = []
+    for g in groups:
+        if g.is_date_overdue():
+            group_list.append({
+                "group": g,
+                "student_count": g.students.count(),
+                "lesson_display": "",
+                "status": "expired",
+                "nearest_time": None,
+            })
+            continue
+
+        lesson_times = list(g.lesson_times.all())
+        status = "kutilmoqda"
+        lesson_display = ""
+        nearest_time = None
+
+        students_count = g.students.count()
+        total_students += students_count
+
+        for lt in lesson_times:
+            days_list = [d.strip().lower() for d in lt.days.split(",") if d.strip()]
+            day_matches = today_uz in days_list
+            if day_filter:
+                day_matches = day_filter in days_list
+
+            day_matches_for_today = today_uz in days_list
+
+            if nearest_time is None or (lt.start_time and (nearest_time is None or lt.start_time < nearest_time)):
+                nearest_time = lt.start_time
+
+            if day_matches_for_today:
+                today_count += 1
+                if lt.start_time <= current_time <= lt.end_time:
+                    status = "active"
+                    active_count += 1
+                elif lt.end_time < current_time:
+                    if status != "active":
+                        status = "finished"
+                elif lt.start_time > current_time:
+                    if status not in ("active", "finished"):
+                        status = "upcoming"
+
+            if day_filter and day_matches:
+                lesson_display = f"{lt.get_days_display()} {lt.start_time.strftime('%H:%M')}-{lt.end_time.strftime('%H:%M')}"
+            elif not day_filter:
+                lesson_display = f"{lt.get_days_display()} {lt.start_time.strftime('%H:%M')}-{lt.end_time.strftime('%H:%M')}"
+
+        group_list.append({
+            "group": g,
+            "student_count": students_count,
+            "lesson_display": lesson_display or (str(lesson_times[0]) if lesson_times else ""),
+            "status": status,
+            "nearest_time": nearest_time,
+        })
+
+    active_groups = [g for g in group_list if g["status"] == "active"]
+    upcoming_groups = [g for g in group_list if g["status"] == "upcoming"]
+    finished_groups = [g for g in group_list if g["status"] == "finished"]
+    pending_groups = [g for g in group_list if g["status"] == "kutilmoqda"]
+    expired_groups = [g for g in group_list if g["status"] == "expired"]
+
+    sorted_groups = active_groups + upcoming_groups + finished_groups + pending_groups + expired_groups
+
+    total_groups = all_teacher_groups.count()
+
+    return render(request, "teacher/dashboard.html", {
+        "groups": sorted_groups,
+        "employee": employee,
+        "selected_day": day_filter,
+        "selected_date": date_filter,
+        "selected_date_display": selected_date_display,
+        "total_groups": total_groups,
+        "today_count": today_count,
+        "active_count": active_count,
+        "total_students": total_students,
+        "today_display": today_display,
+    })
+
+
+@login_required(login_url="login")
+def teacher_group_detail(request, pk):
+    try:
+        employee = request.user.employee_profile
+        if not employee.role or employee.role.name != "O'qituvchi":
+            messages.error(request, "Siz o'qituvchi emassiz!")
+            return redirect("login")
+    except:
+        messages.error(request, "Siz o'qituvchi emassiz!")
+        return redirect("login")
+
+    group = get_object_or_404(
+        Group.objects.select_related("course", "room").prefetch_related("lesson_times"),
+        pk=pk, teacher=employee
+    )
+    if group.is_date_overdue():
+        messages.error(request, "Ushbu guruhning muddati tugagan!")
+        return redirect("teacher_dashboard")
+    students = group.students.all().order_by("first_name")
+
+    return render(request, "teacher/group_detail.html", {
+        "group": group,
+        "students": students,
+        "employee": employee,
+    })
+
+
+@login_required(login_url="login")
 def dashboard(request):
+    try:
+        if request.user.employee_profile.role and request.user.employee_profile.role.name == "O'qituvchi":
+            return redirect("teacher_dashboard")
+    except:
+        pass
     course_count = Course.objects.count()
     group_count = Group.objects.count()
     student_count = Student.objects.count()
