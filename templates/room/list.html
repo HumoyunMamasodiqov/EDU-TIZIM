@@ -6,7 +6,9 @@
         <h2>Xonalar</h2>
         <span class="page-header-count">{{ rooms|length }} ta xona</span>
     </div>
-    <div class="page-header-right">
+    <div class="page-header-right" style="display:flex;gap:6px;">
+        <a href="{% url 'room_export_excel' %}" class="btn btn-success btn-sm" style="background:#2001ff;border-color:#2001ff;color:#fff;"><i class="fas fa-file-excel"></i> Excel</a>
+        <a href="{% url 'room_export_csv' %}" class="btn btn-success btn-sm" style="background:#2001ff;border-color:#2001ff;color:#fff;"><i class="fas fa-file-csv"></i> CSV</a>
         <a href="{% url 'room_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Qo'shish</a>
     </div>
 </div>

@@ -1144,6 +1144,33 @@ def group_detail_export_csv(request, pk):
 
 
 @login_required(login_url="login")
+def room_export_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    rooms = Room.objects.all().order_by("-created_at")
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Xonalar"
+    headers = ["#","Xona nomi","Yaratilgan sana"]
+    hf = Font(bold=True,color="FFFFFF",size=11); hfl = PatternFill(start_color="2563EB",end_color="2563EB",fill_type="solid")
+    tb = Border(left=Side(style='thin',color='D1D5DB'),right=Side(style='thin',color='D1D5DB'),top=Side(style='thin',color='D1D5DB'),bottom=Side(style='thin',color='D1D5DB'))
+    for c,h in enumerate(headers,1): cell = ws.cell(row=1,column=c,value=h); cell.font = hf; cell.fill = hfl; cell.alignment = Alignment(horizontal='center',vertical='center'); cell.border = tb
+    for i,r in enumerate(rooms,1):
+        row = [i,r.name,r.created_at.strftime('%d.%m.%Y') if r.created_at else '-']
+        for c,v in enumerate(row,1): cell = ws.cell(row=i+1,column=c,value=v); cell.border = tb; cell.alignment = Alignment(vertical='center')
+    for col,w in [(1,5),(2,25),(3,14)]: ws.column_dimensions[chr(64+col)].width = w
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="xonalar.xlsx"'; wb.save(response); return response
+
+@login_required(login_url="login")
+def room_export_csv(request):
+    rooms = Room.objects.all().order_by("-created_at")
+    headers = ["#","Xona nomi","Yaratilgan sana"]
+    rows = [[i,r.name,r.created_at.strftime('%d.%m.%Y') if r.created_at else '-'] for i,r in enumerate(rooms,1)]
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="xonalar.csv"'
+    return _write_csv(response, headers, rows)
+
+
+@login_required(login_url="login")
 def student_create(request):
     form = StudentCreateForm()
     if request.method == "POST":

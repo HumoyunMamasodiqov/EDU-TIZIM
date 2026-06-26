@@ -53,8 +53,8 @@
         {% if not request.GET.status %}
         <a href="{% url 'group_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> <span>Qo'shish</span></a>
         {% endif %}
-        <a href="{% url 'group_export_excel' %}" class="btn btn-secondary btn-icon" title="Excel yuklab olish"><i class="fas fa-file-excel"></i> <span>Excel</span></a>
-        <a href="{% url 'group_export_csv' %}" class="btn btn-secondary btn-icon" title="CSV yuklab olish"><i class="fas fa-file-csv"></i> <span>CSV</span></a>
+        <a href="{% url 'group_export_excel' %}" class="btn btn-secondary btn-icon" style="background:#2001ff;color:#fff;border-color:#2001ff;" title="Excel yuklab olish"><i class="fas fa-file-excel"></i> <span>Excel</span></a>
+        <a href="{% url 'group_export_csv' %}" class="btn btn-secondary btn-icon" style="background:#2001ff;color:#fff;border-color:#2001ff;" title="CSV yuklab olish"><i class="fas fa-file-csv"></i> <span>CSV</span></a>
     </div>
 </div>
 
