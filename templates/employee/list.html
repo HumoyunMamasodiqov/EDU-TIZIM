@@ -6,7 +6,9 @@
         <h2>Xodimlar</h2>
         <span class="page-header-count">{{ employees|length }} ta xodim</span>
     </div>
-    <div class="page-header-right">
+    <div class="page-header-right" style="display:flex;gap:6px;">
+        <a href="{% url 'employee_export_excel' %}" class="btn btn-success btn-sm" style="background:#10b981;border-color:#10b981;"><i class="fas fa-file-excel"></i> Excel</a>
+        <a href="{% url 'employee_export_csv' %}" class="btn btn-success btn-sm" style="background:#059669;border-color:#059669;"><i class="fas fa-file-csv"></i> CSV</a>
         <a href="{% url 'employee_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Xodim qo'shish</a>
     </div>
 </div>

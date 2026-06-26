@@ -78,6 +78,47 @@
             </div>
         </div>
     </div>
+    {% if attendance_history %}
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-clipboard-check"></i> Davomat tarixi</h3>
+            </div>
+            <div class="card-body" style="padding:0;">
+                <table class="table min">
+                    <thead>
+                        <tr>
+                            <th>Sana</th>
+                            <th>Guruh</th>
+                            <th>Holat</th>
+                            <th>Izoh</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in attendance_history %}
+                        <tr>
+                            <td>{{ a.date|date:"d.m.Y" }}</td>
+                            <td>{{ a.group.name }}</td>
+                            <td>
+                                {% if a.status == 'present' %}
+                                <span style="color:#22c55e;font-weight:500;"><i class="fas fa-check-circle"></i> Keldi</span>
+                                {% elif a.status == 'boshqoldi' %}
+                                <span style="color:#64748b;font-weight:500;"><i class="fas fa-forward"></i> Boshqoldi</span>
+                                {% elif a.status == 'absent' %}
+                                <span style="color:#ef4444;font-weight:500;"><i class="fas fa-times-circle"></i> Kelmadi</span>
+                                {% elif a.status == 'excused' %}
+                                <span style="color:#f59e0b;font-weight:500;"><i class="fas fa-exclamation-circle"></i> Sababli</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ a.notes|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     <div>
         <div class="card">
             <div class="card-header">

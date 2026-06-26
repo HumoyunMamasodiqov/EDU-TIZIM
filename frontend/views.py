@@ -1,11 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Count, Q
+from django.utils import timezone
 from datetime import date, timedelta
-from .models import Course, Group, Student, MarketingSurvey, StudentLog, LessonTime, Branch, Room, Role, Position, Employee
+import calendar
+from .models import Course, Group, Student, MarketingSurvey, StudentLog, LessonTime, Branch, Room, Role, Position, Employee, Attendance, AbsenceReason
 from .forms import LoginForm, CourseForm, GroupForm, StudentCreateForm, StudentEditForm, MarketingSurveyForm, FreezeForm, RemoveFromGroupForm, AddToGroupForm, LessonTimeForm, BranchForm, RoomForm, RoleForm, PositionForm, EmployeeForm
 
 
@@ -243,29 +246,379 @@ def teacher_my_groups(request):
 
 
 @login_required(login_url="login")
+def admin_mobile_groups(request):
+    is_admin = request.user.is_staff
+    if not is_admin:
+        emp = getattr(request.user, 'employee_profile', None)
+        if emp is None or not emp.role or emp.role.name != "O'qituvchi":
+            is_admin = True
+    if not is_admin:
+        messages.error(request, "Siz admin emassiz!")
+        return redirect("login")
+
+    groups = Group.objects.filter(
+        status__in=["aktiv", "kutilyotgan"]
+    ).select_related("course", "room", "teacher").prefetch_related(
+        "lesson_times", "students"
+    ).annotate(student_count=Count("students")).distinct().order_by("name")
+
+    from datetime import datetime, date
+    now = datetime.now()
+    current_time = now.time()
+    current_weekday = now.weekday()
+    weekday_map = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+    today_uz = weekday_map[current_weekday]
+
+    # Only today's groups
+    groups = groups.filter(lesson_times__days__contains=today_uz)
+
+    group_list = []
+    for g in groups:
+        if g.is_date_overdue():
+            continue
+        lesson_times = list(g.lesson_times.all())
+        status = "kutilmoqda"
+        lesson_display = ""
+        nearest_time = None
+        for lt in lesson_times:
+            days_list = [d.strip().lower() for d in lt.days.split(",") if d.strip()]
+            if nearest_time is None or (lt.start_time and lt.start_time < nearest_time):
+                nearest_time = lt.start_time
+            if today_uz in days_list:
+                if lt.start_time <= current_time <= lt.end_time:
+                    status = "active"
+                elif lt.end_time < current_time:
+                    if status != "active":
+                        status = "finished"
+                elif lt.start_time > current_time:
+                    if status not in ("active","finished"):
+                        status = "upcoming"
+            lesson_display = f"{lt.get_days_display()} {lt.start_time.strftime('%H:%M')}-{lt.end_time.strftime('%H:%M')}"
+        group_list.append({"group":g,"student_count":g.students.count(),"lesson_display":lesson_display,"status":status,"nearest_time":nearest_time})
+
+    return render(request, "teacher/admin_mobile_groups.html", {
+        "groups": group_list,
+    })
+
+
+@login_required(login_url="login")
 def teacher_group_detail(request, pk):
     try:
         employee = request.user.employee_profile
-        if not employee.role or employee.role.name != "O'qituvchi":
-            messages.error(request, "Siz o'qituvchi emassiz!")
-            return redirect("login")
     except:
         messages.error(request, "Siz o'qituvchi emassiz!")
         return redirect("login")
 
     group = get_object_or_404(
-        Group.objects.select_related("course", "room").prefetch_related("lesson_times"),
+        Group.objects.select_related("course", "room").prefetch_related("lesson_times", "students"),
         pk=pk, teacher=employee
     )
-    if group.is_date_overdue():
-        messages.error(request, "Ushbu guruhning muddati tugagan!")
-        return redirect("teacher_dashboard")
     students = group.students.all().order_by("first_name")
+
+    from datetime import date
+    today_attendances = Attendance.objects.filter(group=group, date=date.today())
+    attendance_map = {a.student_id: a.status for a in today_attendances}
+    attendance_notes = {a.student_id: a.notes for a in today_attendances if a.notes}
+
+    # find today's lesson time
+    weekday_map = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+    today_uz = weekday_map[date.today().weekday()]
+    today_lesson = group.lesson_times.filter(days__contains=today_uz).first()
+
+    absence_reasons = AbsenceReason.objects.filter(is_active=True).order_by("order", "name")
 
     return render(request, "teacher/group_detail.html", {
         "group": group,
         "students": students,
         "employee": employee,
+        "attendance_map": attendance_map,
+        "attendance_notes": attendance_notes,
+        "absence_reasons": absence_reasons,
+        "today_lesson": today_lesson,
+    })
+
+
+from django.views.decorators.csrf import csrf_exempt
+@login_required(login_url="login")
+@csrf_exempt
+def take_attendance(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    import json
+    from datetime import datetime, time as dt_time
+    try:
+        data = json.loads(request.body)
+    except:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    group_id = data.get("group_id")
+    records = data.get("records", [])  # [{student_id, status}]
+
+    try:
+        employee = request.user.employee_profile
+    except:
+        employee = None
+
+    is_admin = request.user.is_staff
+    # Non-staff users with non-teacher role are also admins
+    if not is_admin and (employee is None or not employee.role or employee.role.name != "O'qituvchi"):
+        is_admin = True
+    group = get_object_or_404(Group, pk=group_id)
+    today = date.today()
+    allow_dated = data.get("allow_dated", False)
+
+    # Permission check
+    if is_admin:
+        # Admin can save attendance for any group
+        pass
+    else:
+        # Teacher can only save for their own groups
+        if employee is None or group.teacher_id != employee.id:
+            return JsonResponse({"error": "Siz o'qituvchi emassiz!"}, status=403)
+        # Teacher time restriction
+        weekday_map = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+        today_uz = weekday_map[today.weekday()]
+        now = datetime.now().time()
+        allowed = False
+        for lt in group.lesson_times.all():
+            for d_name in lt.days.split(","):
+                if d_name.strip() == today_uz:
+                    if lt.start_time and lt.end_time:
+                        if lt.start_time <= now <= lt.end_time:
+                            allowed = True
+                            break
+            if allowed:
+                break
+        if not allowed:
+            return JsonResponse({"error": "Dars vaqti ichida bo'lmaganda davomatni o'zgartira olmaysiz!"}, status=403)
+
+    student_ids_in_records = set()
+    created_by = ''
+    if employee:
+        created_by = f"{employee.first_name} {employee.last_name or ''}".strip()
+    elif request.user.is_staff:
+        emp = getattr(request.user, 'employee_profile', None)
+        if emp:
+            created_by = f"{emp.first_name} {emp.last_name or ''}".strip()
+        if not created_by or created_by.replace('+', '').replace(' ', '').isdigit():
+            created_by = request.user.get_full_name()
+        if not created_by or created_by.replace('+', '').replace(' ', '').isdigit():
+            created_by = "Admin"
+    for rec in records:
+        student_id = rec.get("student_id")
+        status = rec.get("status", "present")
+        rec_date = rec.get("date")
+        if allow_dated and rec_date:
+            try:
+                rec_date = date.fromisoformat(rec_date)
+            except:
+                rec_date = today
+        else:
+            rec_date = today
+
+        # Teacher can only save for today
+        if not is_admin and rec_date != today:
+            return JsonResponse({"error": "Faqat bugungi davomatni o'zgartira olasiz!"}, status=403)
+
+        if status == "none":
+            Attendance.objects.filter(
+                group=group, student_id=student_id, date=rec_date
+            ).delete()
+            continue
+        student_ids_in_records.add(student_id)
+        notes = rec.get("notes", "") or ""
+        Attendance.objects.update_or_create(
+            group=group,
+            student_id=student_id,
+            date=rec_date,
+            defaults={"status": status, "teacher": employee, "notes": notes, "created_by": created_by}
+        )
+
+    # Tegilmagan o'quvchilarni "Keldi" qilib saqlash
+    if not allow_dated:
+        for student in group.students.all():
+            if student.id not in student_ids_in_records:
+                Attendance.objects.update_or_create(
+                    group=group,
+                    student_id=student.id,
+                    date=today,
+                    defaults={"status": "present", "teacher": employee, "notes": "", "created_by": created_by}
+                )
+
+    return JsonResponse({"ok": True})
+
+
+
+@login_required(login_url="login")
+def teacher_attendance_desktop(request, pk):
+    is_admin = request.user.is_staff
+    if not is_admin:
+        employee = getattr(request.user, 'employee_profile', None)
+        if employee is None or not employee.role or employee.role.name != "O'qituvchi":
+            is_admin = True
+
+    if is_admin:
+        group = get_object_or_404(
+            Group.objects.select_related("course", "room", "teacher"),
+            pk=pk
+        )
+        employee = getattr(request.user, 'employee_profile', None)
+    else:
+        try:
+            employee = request.user.employee_profile
+        except:
+            messages.error(request, "Siz o'qituvchi emassiz!")
+            return redirect("login")
+
+        group = get_object_or_404(
+            Group.objects.select_related("course", "room", "teacher"),
+            pk=pk, teacher=employee
+        )
+    students = group.students.all().order_by("first_name")
+
+    # Month/year from query string, default to current
+    today = date.today()
+    sel_year = int(request.GET.get("year", today.year))
+    sel_month = int(request.GET.get("month", today.month))
+
+    # Generate lesson dates for the selected month
+    weekday_map_rev = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+    lesson_day_numbers = set()
+    for lt in group.lesson_times.all():
+        for d_name in lt.days.split(","):
+            d_name = d_name.strip()
+            for num, uz_name in weekday_map_rev.items():
+                if uz_name == d_name:
+                    lesson_day_numbers.add(num)
+
+    _, last_day = calendar.monthrange(sel_year, sel_month)
+    month_start = date(sel_year, sel_month, 1)
+    month_end = date(sel_year, sel_month, last_day)
+
+    group_created = group.created_at.date() if group.created_at else month_start
+    lesson_start = max(month_start, group_created)
+
+    lesson_dates = []
+    d = lesson_start
+    while d <= month_end:
+        if d.weekday() in lesson_day_numbers:
+            lesson_dates.append(d)
+        d += timedelta(days=1)
+
+    # Build attendance matrix: {student_id: {date_str: status}}
+    attendances = Attendance.objects.filter(group=group, date__gte=month_start, date__lte=month_end)
+    att_matrix = {}
+    att_notes = {}
+    for a in attendances:
+        sid = a.student_id
+        if sid not in att_matrix:
+            att_matrix[sid] = {}
+        att_matrix[sid][a.date.isoformat()] = a.status
+        if a.notes:
+            if sid not in att_notes:
+                att_notes[sid] = {}
+            att_notes[sid][a.date.isoformat()] = a.notes
+
+    # Stats for the month
+    total = students.count()
+    present_count = sum(1 for a in attendances if a.status == "present")
+    absent_count = sum(1 for a in attendances if a.status == "absent")
+    excused_count = sum(1 for a in attendances if a.status == "excused")
+    boshqoldi_count = sum(1 for a in attendances if a.status == "boshqoldi")
+    total_marked = present_count + absent_count + excused_count + boshqoldi_count
+
+    def pct(n): return round((n / total * 100)) if total else 0
+
+    # Build month options for selector
+    months_uz = ["", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"]
+
+    # Check if teacher can edit (only during lesson time)
+    from datetime import datetime
+    can_edit = True if is_admin else False
+    if not is_admin:
+        weekday_map = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+        today_uz = weekday_map[today.weekday()]
+        now = datetime.now().time()
+        for lt in group.lesson_times.all():
+            for d_name in lt.days.split(","):
+                if d_name.strip() == today_uz:
+                    if lt.start_time and lt.end_time:
+                        if lt.start_time <= now <= lt.end_time:
+                            can_edit = True
+                            break
+            if can_edit:
+                break
+
+    absence_reasons = AbsenceReason.objects.filter(is_active=True).order_by("order", "name")
+
+    # Today's groups for mobile group picker (admin only)
+    today_groups = []
+    if is_admin:
+        from datetime import datetime
+        now = datetime.now()
+        weekday_map = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+        today_uz = weekday_map[now.weekday()]
+        qs = Group.objects.filter(status__in=["aktiv","kutilyotgan"], lesson_times__days__contains=today_uz).select_related("course","teacher").annotate(sc=Count("students")).distinct().order_by("name")
+        for g in qs:
+            today_groups.append({"id":g.id,"name":g.name,"course":g.course.name,"teacher_name":str(g.teacher),"sc":g.sc,"active":g.id==group.id})
+
+    # Per-student latest absence reason (for the "Sabab" column)
+    student_last_reason = {}
+    for a in attendances.filter(status__in=['absent', 'excused']).exclude(notes__exact='').order_by('-date'):
+        if a.student_id not in student_last_reason:
+            student_last_reason[a.student_id] = a.notes
+
+    # Per-student full attendance history
+    status_labels = {'absent': 'Kelmadi', 'excused': 'Sababli', 'present': 'Keldi', 'boshqoldi': 'Davom olish'}
+    student_att_history = {}
+    for a in attendances.order_by('-created_at'):
+        sid = a.student_id
+        if sid not in student_att_history:
+            student_att_history[sid] = []
+        teacher_name = ''
+        if a.teacher:
+            teacher_name = (a.teacher.first_name or '') + ' ' + (a.teacher.last_name or '')
+            teacher_name = teacher_name.strip()
+        elif a.created_by:
+            teacher_name = a.created_by
+        from datetime import timezone as dt_timezone, timedelta as dt_timedelta
+        tashkent_tz = dt_timezone(dt_timedelta(hours=5))
+        day_names = {0:'Du',1:'Se',2:'Cho',3:'Pay',4:'Ju',5:'Sha',6:'Yak'}
+        student_att_history[sid].append({
+            'date': a.date.isoformat(),
+            'datetime': a.created_at.astimezone(tashkent_tz).strftime('%d.%m.%Y %H:%M'),
+            'day_name': day_names[a.date.weekday()],
+            'status': status_labels.get(a.status, a.status),
+            'notes': a.notes or '',
+            'teacher': teacher_name,
+        })
+
+    return render(request, "teacher/attendance_desktop.html", {
+        "group": group,
+        "students": students,
+        "employee": employee,
+        "lesson_dates": lesson_dates,
+        "att_matrix": att_matrix,
+        "att_notes": att_notes,
+        "student_last_reason": student_last_reason,
+        "sel_year": sel_year,
+        "sel_month": sel_month,
+        "months_uz": months_uz,
+        "years": range(2024, 2031),
+        "today": today,
+        "total": total,
+        "present_count": present_count,
+        "absent_count": absent_count,
+        "excused_count": excused_count,
+        "boshqoldi_count": boshqoldi_count,
+        "total_marked": total_marked,
+        "student_last_reason": student_last_reason,
+        "student_att_history": student_att_history,
+        "is_admin": is_admin,
+        "can_edit": can_edit,
+        "lessons_count": len(lesson_dates),
+        "absence_reasons": absence_reasons,
+        "today_groups": today_groups,
     })
 
 
@@ -457,8 +810,337 @@ def group_extend(request, pk):
 
 @login_required(login_url="login")
 def student_list(request):
-    students = Student.objects.prefetch_related("groups", "marketing_survey").order_by("-created_at")
-    return render(request, "student/list.html", {"students": students})
+    from django.db.models import Count, Q
+
+    search = request.GET.get("search", "").strip()
+    status_filter = request.GET.get("status", "")
+    group_id = request.GET.get("group", "")
+
+    students = Student.objects.prefetch_related("groups", "marketing_survey").annotate(
+        group_count=Count("groups")
+    ).order_by("-created_at")
+
+    if search:
+        q_filter = Q(first_name__icontains=search) | Q(last_name__icontains=search)
+        digits_only = ''.join(c for c in search if c.isdigit())
+        if digits_only:
+            q_filter |= Q(phone__icontains=digits_only)
+        students = students.filter(q_filter)
+
+    if status_filter == "aktiv":
+        students = students.filter(groups__isnull=False).exclude(status="chiqarilgan").exclude(frozen_until__gte=date.today())
+    elif status_filter == "muzlatilgan":
+        students = students.filter(frozen_until__gte=date.today())
+    elif status_filter == "kutilyotgan":
+        students = students.filter(groups__isnull=True, status="kutilyotgan")
+    elif status_filter == "chiqarilgan":
+        students = students.filter(status="chiqarilgan")
+
+    if group_id:
+        students = students.filter(groups__id=group_id)
+
+    students = students.distinct()
+
+    groups = Group.objects.filter(status__in=["aktiv", "kutilyotgan"]).order_by("name")
+
+    return render(request, "student/list.html", {
+        "students": students,
+        "groups": groups,
+        "active_filters": {
+            "search": search,
+            "status": status_filter,
+            "group": group_id,
+        },
+    })
+
+
+@login_required(login_url="login")
+def student_export_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from django.http import HttpResponse
+
+    students = Student.objects.prefetch_related("groups", "marketing_survey").annotate(
+        group_count=Count("groups")
+    ).order_by("-created_at")
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "O'quvchilar"
+
+    headers = [
+        "#", "Ism", "Familya", "Telefon", "Guruhlar",
+        "Guruhlar soni", "Holat", "Tug'ilgan sana",
+        "Ota ism", "Ota nomer", "Ona ism", "Ona nomer",
+        "Qo'shilgan sana"
+    ]
+
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+    thin_border = Border(
+        left=Side(style='thin', color='D1D5DB'),
+        right=Side(style='thin', color='D1D5DB'),
+        top=Side(style='thin', color='D1D5DB'),
+        bottom=Side(style='thin', color='D1D5DB'),
+    )
+
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = thin_border
+
+    for i, s in enumerate(students, 1):
+        groups_str = ", ".join(g.name for g in s.groups.all()) if s.groups.exists() else "-"
+        if s.is_frozen:
+            status = "Muzlatilgan"
+        elif s.groups.exists():
+            status = "Aktiv"
+        elif s.status == "chiqarilgan":
+            status = "Chiqarilgan"
+        else:
+            status = "Kutilyotgan"
+        row = [
+            i, s.first_name, s.last_name, s.phone, groups_str,
+            s.group_count, status,
+            s.birth_date.strftime("%d.%m.%Y") if s.birth_date else "-",
+            s.father_full_name or "-", s.father_phone or "-",
+            s.mother_full_name or "-", s.mother_phone or "-",
+            s.created_at.strftime("%d.%m.%Y") if s.created_at else "-",
+        ]
+        for col, val in enumerate(row, 1):
+            cell = ws.cell(row=i+1, column=col, value=val)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical='center')
+
+    ws.column_dimensions['A'].width = 5
+    ws.column_dimensions['B'].width = 18
+    ws.column_dimensions['C'].width = 18
+    ws.column_dimensions['D'].width = 20
+    ws.column_dimensions['E'].width = 35
+    ws.column_dimensions['F'].width = 12
+    ws.column_dimensions['G'].width = 14
+    ws.column_dimensions['H'].width = 14
+    ws.column_dimensions['I'].width = 22
+    ws.column_dimensions['J'].width = 20
+    ws.column_dimensions['K'].width = 22
+    ws.column_dimensions['L'].width = 20
+    ws.column_dimensions['M'].width = 14
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="oquvchilar.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required(login_url="login")
+def student_export_csv(request):
+    import csv
+    from django.http import HttpResponse
+
+    students = Student.objects.prefetch_related("groups", "marketing_survey").annotate(
+        group_count=Count("groups")
+    ).order_by("-created_at")
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="oquvchilar.csv"'
+    response.write('\ufeff')
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "#", "Ism", "Familya", "Telefon", "Guruhlar",
+        "Guruhlar soni", "Holat", "Tug'ilgan sana",
+        "Ota ism", "Ota nomer", "Ona ism", "Ona nomer",
+        "Qo'shilgan sana"
+    ])
+
+    for i, s in enumerate(students, 1):
+        groups_str = ", ".join(g.name for g in s.groups.all()) if s.groups.exists() else "-"
+        if s.is_frozen:
+            status = "Muzlatilgan"
+        elif s.groups.exists():
+            status = "Aktiv"
+        elif s.status == "chiqarilgan":
+            status = "Chiqarilgan"
+        else:
+            status = "Kutilyotgan"
+        writer.writerow([
+            i, s.first_name, s.last_name, s.phone, groups_str,
+            s.group_count, status,
+            s.birth_date.strftime("%d.%m.%Y") if s.birth_date else "-",
+            s.father_full_name or "-", s.father_phone or "-",
+            s.mother_full_name or "-", s.mother_phone or "-",
+            s.created_at.strftime("%d.%m.%Y") if s.created_at else "-",
+        ])
+    return response
+
+
+def _write_csv(response, headers, rows):
+    import csv
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(row)
+    return response
+
+
+@login_required(login_url="login")
+def group_export_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    groups = Group.objects.select_related("course", "teacher", "room").prefetch_related("lesson_times").annotate(student_count=Count("students"))
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Guruhlar"
+    headers = ["#","Nomi","Kurs","O'qituvchi","Xona","Kunlar","Vaqt","Talabalar","Holat","Boshlanish","Tugash"]
+    hf = Font(bold=True,color="FFFFFF",size=11); hfl = PatternFill(start_color="2563EB",end_color="2563EB",fill_type="solid")
+    tb = Border(left=Side(style='thin',color='D1D5DB'),right=Side(style='thin',color='D1D5DB'),top=Side(style='thin',color='D1D5DB'),bottom=Side(style='thin',color='D1D5DB'))
+    for c,h in enumerate(headers,1):
+        cell = ws.cell(row=1,column=c,value=h); cell.font = hf; cell.fill = hfl; cell.alignment = Alignment(horizontal='center',vertical='center'); cell.border = tb
+    for i,g in enumerate(groups,1):
+        lt = g.lesson_times.first(); days = lt.days if lt else ""; time = f"{lt.start_time}—{lt.end_time}" if lt else ""
+        teacher = f"{g.teacher.first_name} {g.teacher.last_name}" if g.teacher else "-"
+        row = [i,g.name,g.course.name if g.course else "-",teacher,g.room.name if g.room else "-",days,time,g.student_count,g.get_status_display(),g.start_date.strftime('%d.%m.%Y') if g.start_date else '-',g.end_date.strftime('%d.%m.%Y') if g.end_date else '-']
+        for c,v in enumerate(row,1): cell = ws.cell(row=i+1,column=c,value=v); cell.border = tb; cell.alignment = Alignment(vertical='center')
+    for col,w in [(1,5),(2,25),(3,18),(4,22),(5,14),(6,14),(7,14),(8,10),(9,14),(10,14),(11,14)]: ws.column_dimensions[chr(64+col)].width = w
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="guruhlar.xlsx"'; wb.save(response); return response
+
+@login_required(login_url="login")
+def group_export_csv(request):
+    groups = Group.objects.select_related("course","teacher","room").prefetch_related("lesson_times").annotate(student_count=Count("students"))
+    headers = ["#","Nomi","Kurs","O'qituvchi","Xona","Kunlar","Vaqt","Talabalar","Holat","Boshlanish","Tugash"]
+    rows = []
+    for i,g in enumerate(groups,1):
+        lt = g.lesson_times.first(); days = lt.days if lt else ""; time = f"{lt.start_time}—{lt.end_time}" if lt else ""
+        teacher = f"{g.teacher.first_name} {g.teacher.last_name}" if g.teacher else "-"
+        rows.append([i,g.name,g.course.name if g.course else "-",teacher,g.room.name if g.room else "-",days,time,g.student_count,g.get_status_display(),g.start_date.strftime('%d.%m.%Y') if g.start_date else '-',g.end_date.strftime('%d.%m.%Y') if g.end_date else '-'])
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="guruhlar.csv"'
+    return _write_csv(response, headers, rows)
+
+@login_required(login_url="login")
+def employee_export_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    employees = Employee.objects.prefetch_related("branches").select_related("position","role").all().order_by("-created_at")
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Xodimlar"
+    headers = ["#","Ism","Familya","Telefon","Lavozim","Rol","Filiallar","Qo'shilgan sana"]
+    hf = Font(bold=True,color="FFFFFF",size=11); hfl = PatternFill(start_color="2563EB",end_color="2563EB",fill_type="solid")
+    tb = Border(left=Side(style='thin',color='D1D5DB'),right=Side(style='thin',color='D1D5DB'),top=Side(style='thin',color='D1D5DB'),bottom=Side(style='thin',color='D1D5DB'))
+    for c,h in enumerate(headers,1): cell = ws.cell(row=1,column=c,value=h); cell.font = hf; cell.fill = hfl; cell.alignment = Alignment(horizontal='center',vertical='center'); cell.border = tb
+    for i,e in enumerate(employees,1):
+        branches = ", ".join(b.name for b in e.branches.all()) if e.branches.exists() else "-"
+        row = [i,e.first_name,e.last_name,e.phone,e.position.name if e.position else "-",e.role.name if e.role else "-",branches,e.created_at.strftime('%d.%m.%Y') if e.created_at else '-']
+        for c,v in enumerate(row,1): cell = ws.cell(row=i+1,column=c,value=v); cell.border = tb; cell.alignment = Alignment(vertical='center')
+    for col,w in [(1,5),(2,18),(3,18),(4,20),(5,22),(6,18),(7,22),(8,14)]: ws.column_dimensions[chr(64+col)].width = w
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="xodimlar.xlsx"'; wb.save(response); return response
+
+@login_required(login_url="login")
+def employee_export_csv(request):
+    employees = Employee.objects.prefetch_related("branches").select_related("position","role").all().order_by("-created_at")
+    headers = ["#","Ism","Familya","Telefon","Lavozim","Rol","Filiallar","Qo'shilgan sana"]
+    rows = []
+    for i,e in enumerate(employees,1):
+        branches = ", ".join(b.name for b in e.branches.all()) if e.branches.exists() else "-"
+        rows.append([i,e.first_name,e.last_name,e.phone,e.position.name if e.position else "-",e.role.name if e.role else "-",branches,e.created_at.strftime('%d.%m.%Y') if e.created_at else '-'])
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="xodimlar.csv"'
+    return _write_csv(response, headers, rows)
+
+@login_required(login_url="login")
+def pending_export_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    students = Student.objects.filter(groups__isnull=True, status="kutilyotgan").select_related("desired_course").order_by("-created_at")
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Kutilyotganlar"
+    headers = ["#","Ism","Familya","Telefon","Istagan kursi","Qo'shilgan sana"]
+    hf = Font(bold=True,color="FFFFFF",size=11); hfl = PatternFill(start_color="2563EB",end_color="2563EB",fill_type="solid")
+    tb = Border(left=Side(style='thin',color='D1D5DB'),right=Side(style='thin',color='D1D5DB'),top=Side(style='thin',color='D1D5DB'),bottom=Side(style='thin',color='D1D5DB'))
+    for c,h in enumerate(headers,1): cell = ws.cell(row=1,column=c,value=h); cell.font = hf; cell.fill = hfl; cell.alignment = Alignment(horizontal='center',vertical='center'); cell.border = tb
+    for i,s in enumerate(students,1):
+        row = [i,s.first_name,s.last_name,s.phone or "-",s.desired_course.name if s.desired_course else "-",s.created_at.strftime('%d.%m.%Y') if s.created_at else '-']
+        for c,v in enumerate(row,1): cell = ws.cell(row=i+1,column=c,value=v); cell.border = tb; cell.alignment = Alignment(vertical='center')
+    for col,w in [(1,5),(2,18),(3,18),(4,20),(5,22),(6,14)]: ws.column_dimensions[chr(64+col)].width = w
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="kutilyotganlar.xlsx"'; wb.save(response); return response
+
+@login_required(login_url="login")
+def pending_export_csv(request):
+    students = Student.objects.filter(groups__isnull=True, status="kutilyotgan").select_related("desired_course").order_by("-created_at")
+    headers = ["#","Ism","Familya","Telefon","Istagan kursi","Qo'shilgan sana"]
+    rows = [[i,s.first_name,s.last_name,s.phone or "-",s.desired_course.name if s.desired_course else "-",s.created_at.strftime('%d.%m.%Y') if s.created_at else '-'] for i,s in enumerate(students,1)]
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="kutilyotganlar.csv"'
+    return _write_csv(response, headers, rows)
+
+@login_required(login_url="login")
+def graduated_export_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    students = Student.objects.filter(graduated_groups__isnull=False).prefetch_related("graduated_groups","groups").distinct().order_by("-created_at")
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Bitirilganlar"
+    headers = ["#","Ism","Familya","Telefon","Bitirgan guruhlari","Hozirgi guruhlari","Qo'shilgan sana"]
+    hf = Font(bold=True,color="FFFFFF",size=11); hfl = PatternFill(start_color="2563EB",end_color="2563EB",fill_type="solid")
+    tb = Border(left=Side(style='thin',color='D1D5DB'),right=Side(style='thin',color='D1D5DB'),top=Side(style='thin',color='D1D5DB'),bottom=Side(style='thin',color='D1D5DB'))
+    for c,h in enumerate(headers,1): cell = ws.cell(row=1,column=c,value=h); cell.font = hf; cell.fill = hfl; cell.alignment = Alignment(horizontal='center',vertical='center'); cell.border = tb
+    for i,s in enumerate(students,1):
+        grad = ", ".join(g.name for g in s.graduated_groups.all()) or "-"
+        curr = ", ".join(g.name for g in s.groups.all()) or "-"
+        row = [i,s.first_name,s.last_name,s.phone or "-",grad,curr,s.created_at.strftime('%d.%m.%Y') if s.created_at else '-']
+        for c,v in enumerate(row,1): cell = ws.cell(row=i+1,column=c,value=v); cell.border = tb; cell.alignment = Alignment(vertical='center')
+    for col,w in [(1,5),(2,18),(3,18),(4,20),(5,35),(6,25),(7,14)]: ws.column_dimensions[chr(64+col)].width = w
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="bitirilganlar.xlsx"'; wb.save(response); return response
+
+@login_required(login_url="login")
+def graduated_export_csv(request):
+    students = Student.objects.filter(graduated_groups__isnull=False).prefetch_related("graduated_groups","groups").distinct().order_by("-created_at")
+    headers = ["#","Ism","Familya","Telefon","Bitirgan guruhlari","Hozirgi guruhlari","Qo'shilgan sana"]
+    rows = []
+    for i,s in enumerate(students,1):
+        grad = ", ".join(g.name for g in s.graduated_groups.all()) or "-"
+        curr = ", ".join(g.name for g in s.groups.all()) or "-"
+        rows.append([i,s.first_name,s.last_name,s.phone or "-",grad,curr,s.created_at.strftime('%d.%m.%Y') if s.created_at else '-'])
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="bitirilganlar.csv"'
+    return _write_csv(response, headers, rows)
+
+
+@login_required(login_url="login")
+def group_detail_export_excel(request, pk):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    group = get_object_or_404(Group, pk=pk)
+    students = group.students.prefetch_related("groups").annotate(total_groups=Count("groups"))
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = f"Guruh {group.name}"
+    headers = ["#","Ism","Familya","Telefon","Guruhlari","Guruhlar soni","Qo'shilgan sana"]
+    hf = Font(bold=True,color="FFFFFF",size=11); hfl = PatternFill(start_color="2563EB",end_color="2563EB",fill_type="solid")
+    tb = Border(left=Side(style='thin',color='D1D5DB'),right=Side(style='thin',color='D1D5DB'),top=Side(style='thin',color='D1D5DB'),bottom=Side(style='thin',color='D1D5DB'))
+    for c,h in enumerate(headers,1): cell = ws.cell(row=1,column=c,value=h); cell.font = hf; cell.fill = hfl; cell.alignment = Alignment(horizontal='center',vertical='center'); cell.border = tb
+    for i,s in enumerate(students,1):
+        groups_str = ", ".join(g.name for g in s.groups.all()) if s.groups.exists() else "-"
+        row = [i,s.first_name,s.last_name,s.phone or "-",groups_str,s.total_groups,s.created_at.strftime('%d.%m.%Y') if s.created_at else '-']
+        for c,v in enumerate(row,1): cell = ws.cell(row=i+1,column=c,value=v); cell.border = tb; cell.alignment = Alignment(vertical='center')
+    for col,w in [(1,5),(2,18),(3,18),(4,20),(5,35),(6,12),(7,14)]: ws.column_dimensions[chr(64+col)].width = w
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="guruh_{group.name}_oquvchilar.xlsx"'; wb.save(response); return response
+
+@login_required(login_url="login")
+def group_detail_export_csv(request, pk):
+    group = get_object_or_404(Group, pk=pk)
+    students = group.students.prefetch_related("groups").annotate(total_groups=Count("groups"))
+    headers = ["#","Ism","Familya","Telefon","Guruhlari","Guruhlar soni","Qo'shilgan sana"]
+    rows = []
+    for i,s in enumerate(students,1):
+        groups_str = ", ".join(g.name for g in s.groups.all()) if s.groups.exists() else "-"
+        rows.append([i,s.first_name,s.last_name,s.phone or "-",groups_str,s.total_groups,s.created_at.strftime('%d.%m.%Y') if s.created_at else '-'])
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="guruh_{group.name}_oquvchilar.csv"'
+    return _write_csv(response, headers, rows)
 
 
 @login_required(login_url="login")
@@ -520,7 +1202,7 @@ def group_detail(request, pk):
     group = get_object_or_404(Group.objects.annotate(
         total_students=Count("students")
     ).select_related("course", "room", "teacher").prefetch_related("lesson_times"), pk=pk)
-    students = group.students.all()
+    students = group.students.prefetch_related("groups").annotate(total_groups=Count("groups"))
     q = request.GET.get("q", "").strip()
     all_students = Student.objects.exclude(pk__in=students.values_list("pk", flat=True))
     if q:
@@ -535,14 +1217,33 @@ def group_detail(request, pk):
     ).select_related("desired_course").prefetch_related("groups").order_by("-created_at")
     courses = Course.objects.all()
     removed_logs = StudentLog.objects.filter(group=group, action="removed").select_related("student").order_by("-created_at")[:50]
+    frozen_students = group.students.filter(frozen_until__gte=date.today()).prefetch_related("groups")
+    graduated_students = group.graduated_students.all().prefetch_related("groups")
+
+    # Attendance data
+    weekday_map = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+    today_uz = weekday_map[date.today().weekday()]
+    today_lesson = group.lesson_times.filter(days__contains=today_uz).first()
+    today_attendances = Attendance.objects.filter(group=group, date=date.today())
+    attendance_map = {a.student_id: a.status for a in today_attendances}
+    attendance_notes = {a.student_id: a.notes for a in today_attendances if a.notes}
+
+    absence_reasons = AbsenceReason.objects.filter(is_active=True).order_by("order", "name")
+
     return render(request, "group/detail.html", {
         "group": group,
         "students": students,
         "all_students": all_students,
         "pending_students": pending_students,
         "removed_logs": removed_logs,
+        "frozen_students": frozen_students,
+        "graduated_students": graduated_students,
         "courses": courses,
         "q": q,
+        "today_lesson": today_lesson,
+        "attendance_map": attendance_map,
+        "attendance_notes": attendance_notes,
+        "absence_reasons": absence_reasons,
     })
 
 
@@ -782,8 +1483,15 @@ def student_profile(request, pk):
             if not log.target_name and re.search(r"\bkutilyotgan", log.reason, re.I):
                 log.target_name = "Kutilyotganlar"
     groups = Group.objects.filter(status="aktiv").order_by("name")
+
+    # Attendance history for this student
+    attendance_history = Attendance.objects.filter(
+        student=student
+    ).select_related("group", "teacher").order_by("-date")[:30]
+
     return render(request, "student/profile.html", {
         "student": student, "logs": logs, "groups": groups,
+        "attendance_history": attendance_history,
     })
 
 
@@ -795,12 +1503,39 @@ def student_freeze(request, pk):
         if form.is_valid():
             days = form.cleaned_data["days"]
             reason = form.cleaned_data["reason"]
-            student.frozen_until = date.today() + timedelta(days=days)
+            frozen_until = date.today() + timedelta(days=days)
+            student.frozen_until = frozen_until
             student.save(update_fields=["frozen_until"])
             StudentLog.objects.create(
                 student=student, group=student.groups.first(), action="frozen",
                 reason=f"{days} kunga muzlatildi. {reason}" if reason else f"{days} kunga muzlatildi"
             )
+
+            # Auto-create absent attendance for future lesson dates
+            freez_note = "Muzlatilgan"
+            if reason:
+                freez_note += f" - {reason}"
+            weekday_map = {0:"dushanba",1:"seshanba",2:"chorshanba",3:"payshanba",4:"juma",5:"shanba",6:"yakshanba"}
+            today = date.today()
+            for group in student.groups.all():
+                lesson_day_nums = set()
+                for lt in group.lesson_times.all():
+                    for d_name in lt.days.split(","):
+                        d_name = d_name.strip()
+                        for num, uz_name in weekday_map.items():
+                            if uz_name == d_name:
+                                lesson_day_nums.add(num)
+                d = today
+                while d <= frozen_until:
+                    if d.weekday() in lesson_day_nums:
+                        Attendance.objects.update_or_create(
+                            group=group,
+                            student=student,
+                            date=d,
+                            defaults={"status": "absent", "notes": freez_note}
+                        )
+                    d += timedelta(days=1)
+
             messages.success(request, f"{student.first_name} {student.last_name} {days} kunga muzlatildi")
             return redirect("student_profile", pk=student.pk)
     else:
@@ -811,6 +1546,12 @@ def student_freeze(request, pk):
 @login_required(login_url="login")
 def student_unfreeze(request, pk):
     student = get_object_or_404(Student, pk=pk)
+    # Remove auto-created absent records from freezing
+    Attendance.objects.filter(
+        student=student,
+        status="absent",
+        notes__startswith="Muzlatilgan"
+    ).delete()
     student.frozen_until = None
     student.save(update_fields=["frozen_until"])
     StudentLog.objects.create(
@@ -1236,9 +1977,66 @@ def survey_delete(request, pk):
 
 @login_required(login_url="login")
 def dismiss_removed_log(request, pk):
-    from django.http import JsonResponse
     if request.method == "POST":
         log = get_object_or_404(StudentLog, pk=pk)
         log.delete()
         return JsonResponse({"ok": True})
     return JsonResponse({"ok": False}, status=405)
+
+
+@login_required(login_url="login")
+def absence_reason_list(request):
+    reasons = AbsenceReason.objects.all().order_by("order", "name")
+    return render(request, "absence_reason/list.html", {"reasons": reasons})
+
+
+@login_required(login_url="login")
+def absence_reason_create(request):
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        reason_type = request.POST.get("reason_type", "both")
+        is_active = request.POST.get("is_active") == "on"
+        order = request.POST.get("order", 0)
+        if name:
+            AbsenceReason.objects.create(
+                name=name,
+                reason_type=reason_type,
+                is_active=is_active,
+                order=int(order) if order else 0,
+            )
+            messages.success(request, "Davomat sababi qo'shildi")
+        else:
+            messages.error(request, "Sabab nomini yozing!")
+        return redirect("absence_reason_list")
+    return redirect("absence_reason_list")
+
+
+@login_required(login_url="login")
+def absence_reason_update(request, pk):
+    reason = get_object_or_404(AbsenceReason, pk=pk)
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        reason_type = request.POST.get("reason_type", "both")
+        is_active = request.POST.get("is_active") == "on"
+        order = request.POST.get("order", 0)
+        if name:
+            reason.name = name
+            reason.reason_type = reason_type
+            reason.is_active = is_active
+            reason.order = int(order) if order else 0
+            reason.save()
+            messages.success(request, "Davomat sababi yangilandi")
+        else:
+            messages.error(request, "Sabab nomini yozing!")
+        return redirect("absence_reason_list")
+    return redirect("absence_reason_list")
+
+
+@login_required(login_url="login")
+def absence_reason_delete(request, pk):
+    reason = get_object_or_404(AbsenceReason, pk=pk)
+    if request.method == "POST":
+        reason.delete()
+        messages.success(request, "Davomat sababi o'chirildi")
+        return redirect("absence_reason_list")
+    return render(request, "absence_reason/delete.html", {"reason": reason})

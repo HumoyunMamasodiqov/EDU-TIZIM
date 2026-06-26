@@ -1,5 +1,5 @@
 from django.db import models
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 
 class Course(models.Model):
@@ -303,3 +303,51 @@ class Employee(models.Model):
     class Meta:
         verbose_name = "Xodim"
         verbose_name_plural = "Xodimlar"
+
+
+class Attendance(models.Model):
+    class Status(models.TextChoices):
+        PRESENT = "present", "Keldi"
+        ABSENT = "absent", "Kelmadi"
+        EXCUSED = "excused", "Sababli kelmadi"
+        BOSH = "boshqoldi", "Davom olish"
+
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="attendances", verbose_name="Guruh")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="attendances", verbose_name="O'quvchi")
+    lesson_time = models.ForeignKey("LessonTime", on_delete=models.CASCADE, related_name="attendances", verbose_name="Dars vaqti", null=True, blank=True)
+    date = models.DateField(verbose_name="Sana")
+    status = models.CharField(max_length=15, choices=Status.choices, default=Status.PRESENT, verbose_name="Holati")
+    teacher = models.ForeignKey("Employee", on_delete=models.CASCADE, related_name="attendances", verbose_name="O'qituvchi", null=True, blank=True)
+    created_by = models.CharField(max_length=255, blank=True, default="", verbose_name="Kim tomonidan")
+    notes = models.TextField(verbose_name="Izoh", blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Davomat"
+        verbose_name_plural = "Davomatlar"
+        unique_together = ("group", "student", "date")
+
+    def __str__(self):
+        return f"{self.student} - {self.date} - {self.get_status_display()}"
+
+
+class AbsenceReason(models.Model):
+    class ReasonType(models.TextChoices):
+        ABSENT = "absent", "Kelmadi"
+        EXCUSED = "excused", "Sababli kelmadi"
+        BOTH = "both", "Ikkalasi"
+
+    name = models.CharField(max_length=255, verbose_name="Sabab nomi")
+    reason_type = models.CharField(max_length=10, choices=ReasonType.choices, default=ReasonType.BOTH, verbose_name="Turi")
+    is_active = models.BooleanField(default=True, verbose_name="Faol")
+    order = models.PositiveIntegerField(default=0, verbose_name="Tartib")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Davomat sababi"
+        verbose_name_plural = "Davomat sabablari"
+        ordering = ["order", "name"]
+
+    def __str__(self):
+        return self.name
