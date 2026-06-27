@@ -109,6 +109,10 @@ class Student(models.Model):
         PENDING = "kutilyotgan", "Kutilyotgan"
         REMOVED = "chiqarilgan", "Chiqarilgan"
 
+    user = models.OneToOneField(
+        "auth.User", on_delete=models.CASCADE, null=True, blank=True,
+        related_name="student_profile", verbose_name="Foydalanuvchi"
+    )
     first_name = models.CharField(max_length=255, verbose_name="Ism")
     last_name = models.CharField(max_length=255, verbose_name="Familya")
     phone = models.CharField(max_length=20, verbose_name="Telefon raqam")
@@ -140,6 +144,7 @@ class Student(models.Model):
     father_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Otasining nomeri")
     mother_full_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Onasining ism familya")
     mother_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Onasining nomeri")
+    telegram_chat_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="Telegram chat ID")
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -351,3 +356,18 @@ class AbsenceReason(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class VerificationCode(models.Model):
+    phone = models.CharField(max_length=20, verbose_name="Telefon raqam")
+    code = models.CharField(max_length=6, verbose_name="Tasdiqlash kodi")
+    is_used = models.BooleanField(default=False, verbose_name="Ishlatilgan")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Tasdiqlash kodi"
+        verbose_name_plural = "Tasdiqlash kodlari"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.phone} - {self.code}"

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import student_api
 
 urlpatterns = [
     path("", views.login_view, name="login"),
@@ -85,4 +86,15 @@ urlpatterns = [
     path("absence-reasons/create/", views.absence_reason_create, name="absence_reason_create"),
     path("absence-reasons/<int:pk>/update/", views.absence_reason_update, name="absence_reason_update"),
     path("absence-reasons/<int:pk>/delete/", views.absence_reason_delete, name="absence_reason_delete"),
+    # Student API
+    path("api/telegram-webhook/", student_api.telegram_webhook, name="telegram_webhook"),
+    path("api/student/send-code/", student_api.send_code, name="student_send_code"),
+    path("api/student/verify-code/", student_api.verify_code, name="student_verify_code"),
+    path("api/student/set-password/", student_api.set_password, name="student_set_password"),
+    path("api/student/login/", student_api.student_login, name="student_login"),
+    path("api/student/profile/", student_api.profile, name="student_api_profile"),
+    path("api/student/today-classes/", student_api.today_classes, name="student_today_classes"),
+    path("api/student/schedule/", student_api.schedule, name="student_schedule"),
+    path("api/student/attendance-history/", student_api.attendance_history, name="student_attendance_history"),
+    path("api/student/monthly-calendar/", student_api.monthly_calendar, name="student_monthly_calendar"),
 ]
